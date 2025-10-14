@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 
+#include "lexer.h"
+
 // base class for expressions
 class ExprAST {
 public:
@@ -74,4 +76,4 @@ public:
 // token the parser is looking at. getNextToken reads another token from the
 // lexer and updates CurTok with its results.
 static int CurTok;
-static int getNextToken() {}
+static int getNextToken() { return CurTok = gettok(); }

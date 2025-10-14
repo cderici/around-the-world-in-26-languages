@@ -2,21 +2,13 @@
 #include <cstdlib>
 #include <string>
 
-enum Token {
-  tok_eof = -1,
+#include "lexer.h"
 
-  tok_def = -2,
-  tok_extern = -3,
-
-  tok_identifier = -4,
-  tok_number = -5,
-};
-
-static std::string IdentifierStr;
-static double NumVal;
+std::string IdentifierStr;
+double NumVal;
 
 // the actual lexer
-static int gettok() {
+Token gettok() {
   // LastChar: read, but not processed
   static int LastChar = ' ';
 
