@@ -76,4 +76,17 @@ public:
 // token the parser is looking at. getNextToken reads another token from the
 // lexer and updates CurTok with its results.
 static int CurTok;
+// This CurTok is like in the tetris game you'd see the next piece that's
+// coming. Parser can look ahead.
 static int getNextToken() { return CurTok = gettok(); }
+
+// Little helper functions for error handling.
+std::unique_ptr<ExprAST> LogError(const char *Str) {
+  fprintf(stderr, "Error: %s\n", Str);
+  return nullptr;
+}
+
+std::unique_ptr<PrototypeAST> LogErrorP(const char *Str) {
+  LogError(Str);
+  return nullptr;
+}
