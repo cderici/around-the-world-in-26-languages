@@ -78,7 +78,7 @@ public:
 static int CurTok;
 // This CurTok is like in the tetris game you'd see the next piece that's
 // coming. Parser can look ahead.
-static int getNextToken() { return CurTok = gettok(); }
+static int getNextToken() { return CurTok = lexer::gettok(); }
 
 // Little helper functions for error handling.
 std::unique_ptr<ExprAST> LogError(const char *Str) {
@@ -89,4 +89,17 @@ std::unique_ptr<ExprAST> LogError(const char *Str) {
 std::unique_ptr<PrototypeAST> LogErrorP(const char *Str) {
   LogError(Str);
   return nullptr;
+}
+
+/*
+ * PARSER
+ *
+ * (for each production in the grammar, there's a function)
+ * */
+
+// numberexpr ::= number
+static std::unique_ptr<ExprAST> ParseNumberExpr() {
+  auto result = std::make_unique<NumberExprAST>(lexer::NumVal);
+  getNextToken(); // consume the number
+  return result;
 }
