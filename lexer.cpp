@@ -4,11 +4,11 @@
 
 #include "lexer.h"
 
-std::string IdentifierStr;
-double NumVal;
+std::string lexer::IdentifierStr;
+double lexer::NumVal;
 
 // the actual lexer
-Token gettok() {
+Token lexer::gettok() {
   // LastChar: read, but not processed
   static int LastChar = ' ';
 

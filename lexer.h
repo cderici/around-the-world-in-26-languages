@@ -11,7 +11,10 @@ enum Token {
   tok_number = -5,
 };
 
+namespace lexer {
+
 extern std::string IdentifierStr;
 extern double NumVal;
 
 Token gettok();
+} // namespace lexer
