@@ -156,3 +156,20 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
 
   return std::make_unique<CallExprAST>(IdName, std::move(Args));
 }
+
+// primary
+//  ::= identifierexpr
+//  ::= numberexpr
+//  ::= parenexpr
+static std::unique_ptr<ExprAST> ParsePrimary() {
+  switch (CurTok) {
+  default:
+    return LogError("parser: unknown token when expecting expression");
+  case tok_identifier:
+    return ParseIdentifierExpr();
+  case tok_number:
+    return ParseNumberExpr();
+  case '(':
+    return ParseParenExpr();
+  }
+}
