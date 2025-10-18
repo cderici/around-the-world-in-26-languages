@@ -49,7 +49,8 @@ public:
 };
 
 // PrototypeAST - represents a prototype for a function (name + argnames). Note
-// that the language we're implementing doesn't have static types.
+// that the language we're implementing doesn't have static types. So the
+// prototype is just the name of the function and the names of the arguments.
 class PrototypeAST {
   std::string Name;
   std::vector<std::string> Args;
@@ -61,7 +62,7 @@ public:
   const std::string &getName() const { return Name; }
 };
 
-// FunctionAST - This represents a lambda.
+// FunctionAST - This represents a function def (lambda).
 class FunctionAST {
   std::unique_ptr<PrototypeAST> Proto;
   std::unique_ptr<ExprAST> Body;
@@ -102,4 +103,18 @@ static std::unique_ptr<ExprAST> ParseNumberExpr() {
   auto result = std::make_unique<NumberExprAST>(lexer::NumVal);
   getNextToken(); // consume the number
   return result;
+}
+
+// parenexpr ::= '(' expression ')'
+static std::unique_ptr<ExprAST> ParseParenExpr() {
+  getNextToken(); // consume (
+  auto V = ParseExpression();
+  if (!V) {
+    return nullptr;
+  }
+
+  if (CurTok != ')')
+    return LogError("parser: expected ')'");
+  getNextToken(); // consume )
+  return V;
 }
