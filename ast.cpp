@@ -194,7 +194,40 @@ static std::unique_ptr<ExprAST> ParseExpression() {
   if (!LHS)
     return nullptr;
 
+  // 0 down here is the precedence
   return ParseBinOpRHS(0, std::move(LHS));
+}
+
+// binoprhs ::= ('+' primary)*
+// ParseBinOpRHS takes the "currrent" precedence as input, and checks if the
+// precedence of the CurTok is at least as big as the "current" precedence.
+static std::unique_ptr<ExprAST> ParseBinOpRHS(int CurrentExprPrec,
+                                              std::unique_ptr<ExprAST> LHS) {
+  while (true) {
+    int TokPrec = GetTokenPrecedence();
+
+    if (TokPrec < CurrentExprPrec)
+      return LHS;
+
+    // At this point, we know that it's a binop
+    int BinOP = CurTok;
+    getNextToken(); // consume binop, i.e. move CurTok on the expression comes
+                    // after the operator
+
+    auto RHS = ParsePrimary();
+    if (!RHS)
+      return nullptr;
+
+    int NextPrec = GetTokenPrecedence();
+    if (TokPrec < NextPrec) {
+      RHS = ParseBinOpRHS(TokPrec + 1, std::move(RHS));
+      if (!RHS)
+        return nullptr;
+    }
+
+    LHS =
+        std::make_unique<BinaryExprAST>(BinOP, std::move(LHS), std::move(RHS));
+  }
 }
 
 int main() {
