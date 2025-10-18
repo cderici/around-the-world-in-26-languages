@@ -1,3 +1,4 @@
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -172,4 +173,36 @@ static std::unique_ptr<ExprAST> ParsePrimary() {
   case '(':
     return ParseParenExpr();
   }
+}
+
+// BinopPrecedence
+static std::map<char, int> BinopPrecedence;
+
+static int GetTokenPrecedence() {
+  if (!isascii(CurTok))
+    return -1;
+
+  int TokPrec = BinopPrecedence[CurTok];
+  return TokPrec ? (TokPrec > 0) : -1;
+}
+
+// expression ::= primary | primary binoprhs
+// an expression is a parimary expression, potentially followed by a sequence of
+// [binop, primaryexpr] pairs, e.g., a [+, b][+, (c+d)], ...
+static std::unique_ptr<ExprAST> ParseExpression() {
+  auto LHS = ParsePrimary();
+  if (!LHS)
+    return nullptr;
+
+  return ParseBinOpRHS(0, std::move(LHS));
+}
+
+int main() {
+  // Load the precedences for binary operations
+  // higher value means higher precedence
+  BinopPrecedence['<'] = 10;
+  BinopPrecedence['+'] = 20;
+  BinopPrecedence['-'] = 20;
+  BinopPrecedence['*'] = 40;
+  // TODO: extend
 }
