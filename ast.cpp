@@ -118,3 +118,41 @@ static std::unique_ptr<ExprAST> ParseParenExpr() {
   getNextToken(); // consume )
   return V;
 }
+
+// identifierexpr
+//  ::= identifier
+//  ::= identifier '(' expression* ')' <----- function call
+static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
+  std::string IdName = lexer::IdentifierStr;
+
+  getNextToken(); // eat the identifier
+
+  if (CurTok != '(') // simple variable reference
+    return std::make_unique<VariableExprAST>(IdName);
+
+  // It's a function call
+  getNextToken(); // consume (
+
+  // make the args
+  std::vector<std::unique_ptr<ExprAST>> Args;
+  if (CurTok != ')') {
+    while (true) {
+      if (auto Arg = ParseExpression())
+        Args.push_back(std::move(Arg));
+      else
+        return nullptr;
+
+      if (CurTok == ')')
+        break;
+
+      if (CurTok != ',')
+        return LogError("parser: expected ')' or ',' in argument list");
+
+      getNextToken();
+    }
+  }
+
+  getNextToken(); // eat )
+
+  return std::make_unique<CallExprAST>(IdName, std::move(Args));
+}
