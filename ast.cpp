@@ -269,6 +269,14 @@ static std::unique_ptr<FunctionAST> ParseDefinition() {
   return nullptr;
 }
 
+// external ::= 'extern' prototype
+// (for forward declaring user functions, and actual external functions, such as
+// sin, cos, etc.)
+static std::unique_ptr<PrototypeAST> ParseExtern() {
+  getNextToken(); // consume 'extern' keyword
+  return ParsePrototype();
+}
+
 int main() {
   // Load the precedences for binary operations
   // higher value means higher precedence
