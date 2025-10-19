@@ -230,6 +230,32 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int CurrentExprPrec,
   }
 }
 
+// prototype
+//  ::= id '(' id* ')'
+static std::unique_ptr<PrototypeAST> ParsePrototype() {
+  if (CurTok != tok_identifier)
+    return LogErrorP("Expected function name in prototype");
+
+  std::string FnName = lexer::IdentifierStr;
+  getNextToken();
+
+  if (CurTok != '(')
+    return LogErrorP("Expected argument names in prototype");
+
+  // Read list of argument names
+  std::vector<std::string> ArgNames;
+  while (getNextToken() == tok_identifier)
+    ArgNames.push_back(lexer::IdentifierStr);
+
+  if (CurTok != ')')
+    return LogErrorP("Expected ')' in prototype");
+
+  // success
+  getNextToken(); // consume the last ')'
+
+  return std::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
+}
+
 int main() {
   // Load the precedences for binary operations
   // higher value means higher precedence
