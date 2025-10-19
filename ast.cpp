@@ -277,6 +277,17 @@ static std::unique_ptr<PrototypeAST> ParseExtern() {
   return ParsePrototype();
 }
 
+// toplevelexpr ::= expression
+static std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
+  if (auto E = ParseExpression()) {
+    // Make an anonymous proto for a func def with no name, put the expression
+    // as the body
+    auto Proto = std::make_unique<PrototypeAST>("", std::vector<std::string>());
+    return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+  }
+  return nullptr;
+}
+
 int main() {
   // Load the precedences for binary operations
   // higher value means higher precedence
