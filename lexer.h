@@ -16,5 +16,5 @@ namespace lexer {
 extern std::string IdentifierStr;
 extern double NumVal;
 
-Token gettok();
+int gettok();
 } // namespace lexer

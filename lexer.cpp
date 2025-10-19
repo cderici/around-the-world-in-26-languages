@@ -8,7 +8,7 @@ std::string lexer::IdentifierStr;
 double lexer::NumVal;
 
 // the actual lexer
-Token lexer::gettok() {
+int lexer::gettok() {
   // LastChar: read, but not processed
   static int LastChar = ' ';
 
