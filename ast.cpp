@@ -183,7 +183,7 @@ static int GetTokenPrecedence() {
     return -1;
 
   int TokPrec = BinopPrecedence[CurTok];
-  return TokPrec ? (TokPrec > 0) : -1;
+  return (TokPrec > 0) ? TokPrec : -1;
 }
 
 // expression ::= primary | primary binoprhs
