@@ -82,6 +82,17 @@ static int CurTok;
 // coming. Parser can look ahead.
 static int getNextToken() { return CurTok = lexer::gettok(); }
 
+// BinopPrecedence
+static std::map<char, int> BinopPrecedence;
+
+static int GetTokenPrecedence() {
+  if (!isascii(CurTok))
+    return -1;
+
+  int TokPrec = BinopPrecedence[CurTok];
+  return (TokPrec > 0) ? TokPrec : -1;
+}
+
 // Little helper functions for error handling.
 std::unique_ptr<ExprAST> LogError(const char *Str) {
   fprintf(stderr, "Error: %s\n", Str);
@@ -98,6 +109,7 @@ std::unique_ptr<PrototypeAST> LogErrorP(const char *Str) {
  *
  * (for each production in the grammar, there's a function)
  * */
+static std::unique_ptr<ExprAST> ParseExpression();
 
 // numberexpr ::= number
 static std::unique_ptr<ExprAST> ParseNumberExpr() {
@@ -175,29 +187,6 @@ static std::unique_ptr<ExprAST> ParsePrimary() {
   }
 }
 
-// BinopPrecedence
-static std::map<char, int> BinopPrecedence;
-
-static int GetTokenPrecedence() {
-  if (!isascii(CurTok))
-    return -1;
-
-  int TokPrec = BinopPrecedence[CurTok];
-  return (TokPrec > 0) ? TokPrec : -1;
-}
-
-// expression ::= primary | primary binoprhs
-// an expression is a parimary expression, potentially followed by a sequence of
-// [binop, primaryexpr] pairs, e.g., a [+, b][+, (c+d)], ...
-static std::unique_ptr<ExprAST> ParseExpression() {
-  auto LHS = ParsePrimary();
-  if (!LHS)
-    return nullptr;
-
-  // 0 down here is the precedence
-  return ParseBinOpRHS(0, std::move(LHS));
-}
-
 // binoprhs ::= ('+' primary)*
 // ParseBinOpRHS takes the "currrent" precedence as input, and checks if the
 // precedence of the CurTok is at least as big as the "current" precedence.
@@ -228,6 +217,18 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int CurrentExprPrec,
     LHS =
         std::make_unique<BinaryExprAST>(BinOP, std::move(LHS), std::move(RHS));
   }
+}
+
+// expression ::= primary | primary binoprhs
+// an expression is a parimary expression, potentially followed by a sequence of
+// [binop, primaryexpr] pairs, e.g., a [+, b][+, (c+d)], ...
+static std::unique_ptr<ExprAST> ParseExpression() {
+  auto LHS = ParsePrimary();
+  if (!LHS)
+    return nullptr;
+
+  // 0 down here is the precedence
+  return ParseBinOpRHS(0, std::move(LHS));
 }
 
 // prototype
@@ -269,14 +270,6 @@ static std::unique_ptr<FunctionAST> ParseDefinition() {
   return nullptr;
 }
 
-// external ::= 'extern' prototype
-// (for forward declaring user functions, and actual external functions, such as
-// sin, cos, etc.)
-static std::unique_ptr<PrototypeAST> ParseExtern() {
-  getNextToken(); // consume 'extern' keyword
-  return ParsePrototype();
-}
-
 // toplevelexpr ::= expression
 static std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
   if (auto E = ParseExpression()) {
@@ -286,6 +279,14 @@ static std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
     return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
   }
   return nullptr;
+}
+
+// external ::= 'extern' prototype
+// (for forward declaring user functions, and actual external functions, such as
+// sin, cos, etc.)
+static std::unique_ptr<PrototypeAST> ParseExtern() {
+  getNextToken(); // consume 'extern' keyword
+  return ParsePrototype();
 }
 
 /*
@@ -345,4 +346,12 @@ int main() {
   BinopPrecedence['-'] = 20;
   BinopPrecedence['*'] = 40;
   // TODO: extend
+
+  // Fire up the REPL
+  fprintf(stderr, "ready> ");
+  getNextToken();
+
+  MainLoop();
+
+  return 0;
 }
