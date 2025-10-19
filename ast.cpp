@@ -256,6 +256,19 @@ static std::unique_ptr<PrototypeAST> ParsePrototype() {
   return std::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
 }
 
+// definition ::= 'def' prototype expression
+static std::unique_ptr<FunctionAST> ParseDefinition() {
+  getNextToken(); // consume 'def' keyword
+
+  auto Proto = ParsePrototype();
+  if (!Proto)
+    return nullptr;
+
+  if (auto E = ParseExpression())
+    return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+  return nullptr;
+}
+
 int main() {
   // Load the precedences for binary operations
   // higher value means higher precedence
