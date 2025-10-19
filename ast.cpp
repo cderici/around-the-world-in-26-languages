@@ -288,6 +288,55 @@ static std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
   return nullptr;
 }
 
+/*
+ * Top-level REPL
+ * */
+
+static void HandleDefinition() {
+  if (ParseDefinition())
+    fprintf(stderr, "Parsed a function definition\n");
+  else
+    getNextToken(); // FIXME: is this correct?
+}
+
+static void HandleExtern() {
+  if (ParseExtern())
+    fprintf(stderr, "Parsed an extern\n");
+  else
+    getNextToken();
+}
+
+static void HandleTopLevelExpression() {
+  if (ParseTopLevelExpr())
+    fprintf(stderr, "Parsed a top-level expr\n");
+  else
+    getNextToken();
+}
+
+// top ::= definition | external | expression | ';'
+// REPL
+static void MainLoop() {
+  while (true) {
+    fprintf(stderr, "ready> ");
+    switch (CurTok) {
+    case tok_eof:
+      return;
+    case ';':
+      getNextToken(); // ignore toplevel ; symbols
+      break;
+    case tok_def:
+      HandleDefinition();
+      break;
+    case tok_extern:
+      HandleExtern();
+      break;
+    default:
+      HandleTopLevelExpression();
+      break;
+    }
+  }
+}
+
 int main() {
   // Load the precedences for binary operations
   // higher value means higher precedence
