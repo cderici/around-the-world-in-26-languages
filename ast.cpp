@@ -28,12 +28,14 @@ class VariableExprAST : public ExprAST {
 
 public:
   VariableExprAST(const std::string &Name) : Name(Name) {}
+  llvm::Value *codegen() override;
 };
 
 // Binops
 class BinaryExprAST : public ExprAST {
   char Op;
   std::unique_ptr<ExprAST> LHS, RHS;
+  llvm::Value *codegen() override;
 
 public:
   BinaryExprAST(char Op, std::unique_ptr<ExprAST> LHS,
@@ -50,6 +52,7 @@ public:
   CallExprAST(const std::string &Callee,
               std::vector<std::unique_ptr<ExprAST>> Args)
       : Callee(Callee), Args(std::move(Args)) {}
+  llvm::Value *codegen() override;
 };
 
 // PrototypeAST - represents a prototype for a function (name + argnames). Note
@@ -64,6 +67,7 @@ public:
       : Name(Name), Args(std::move(Args)) {}
 
   const std::string &getName() const { return Name; }
+  llvm::Function *codegen();
 };
 
 // FunctionAST - This represents a function def (lambda).
@@ -75,6 +79,7 @@ public:
   FunctionAST(std::unique_ptr<PrototypeAST> Proto,
               std::unique_ptr<ExprAST> Body)
       : Proto(std::move(Proto)), Body(std::move(Body)) {}
+  llvm::Function *codegen();
 };
 
 // CurTok/getNextToken - provide a simple token buffer. Curtok is the current
