@@ -3,6 +3,3 @@ CompileFlags:
     "-std=c++23",
     "-I/usr/lib/llvm-20/include"
   ]
-Clangd:
-  QueryDriver: [/usr/bin/clang++-20, /usr/bin/clang-20]
-
