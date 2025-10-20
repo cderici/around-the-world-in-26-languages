@@ -1,3 +1,4 @@
+#include <llvm/IR/Value.h>
 #include <map>
 #include <memory>
 #include <string>
@@ -9,6 +10,7 @@
 class ExprAST {
 public:
   virtual ~ExprAST() = default;
+  virtual llvm::Value *codegen() = 0;
 };
 
 // Numbers
@@ -17,6 +19,7 @@ class NumberExprAST : public ExprAST {
 
 public:
   NumberExprAST(double v) : Val(v) {}
+  llvm::Value *codegen() override;
 };
 
 // Vars
