@@ -5,6 +5,8 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
+
+#include <format>
 #include <map>
 
 #include "ast.h"
@@ -38,7 +40,7 @@ llvm::Value *VariableExprAST::codegen() {
 
 llvm::Value *BinaryExprAST::codegen() {
   llvm::Value *L = LHS->codegen();
-  llvm::Value *R = LHS->codegen();
+  llvm::Value *R = RHS->codegen();
 
   if (!L || !R)
     return nullptr;
