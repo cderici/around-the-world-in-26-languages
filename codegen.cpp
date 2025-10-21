@@ -58,3 +58,31 @@ llvm::Value *BinaryExprAST::codegen() {
     return LogErrorV(s.c_str());
   }
 }
+
+llvm::Value *CallExprAST::codegen() {
+  // Lookup for function in global module table
+  llvm::Function *CalleeF = TheModule->getFunction(Callee);
+  if (!CalleeF) {
+    // FIXME: make this log error formatting
+    std::string s = std::format("Unknown function reference: {}", Callee);
+    return LogErrorV(s.c_str());
+  }
+
+  // Check for arg mismatch
+  if (CalleeF->arg_size() != Args.size()) {
+    std::string s = std::format("Expected {} arguments to {}, given: {}",
+                                CalleeF->arg_size(), Callee, Args.size());
+    return LogErrorV(s.c_str());
+  }
+
+  std::vector<llvm::Value *> ArgsV;
+  ArgsV.reserve(Args.size());
+  for (auto &arg : Args) {
+    llvm::Value *v = arg->codegen();
+    if (!v)
+      return nullptr;
+    ArgsV.push_back(v);
+  }
+
+  return Builder->CreateCall(CalleeF, ArgsV, "calltmp");
+}
