@@ -50,3 +50,30 @@ public:
       : Callee(Callee), Args(std::move(Args)) {}
   llvm::Value *codegen() override;
 };
+
+// PrototypeAST - represents a prototype for a function (name + argnames). Note
+// that the language we're implementing doesn't have static types. So the
+// prototype is just the name of the function and the names of the arguments.
+class PrototypeAST {
+  std::string Name;
+  std::vector<std::string> Args;
+
+public:
+  PrototypeAST(std::string Name, std::vector<std::string> Args)
+      : Name(Name), Args(std::move(Args)) {}
+
+  const std::string &getName() const { return Name; }
+  llvm::Function *codegen();
+};
+
+// FunctionAST - This represents a function def (lambda).
+class FunctionAST {
+  std::unique_ptr<PrototypeAST> Proto;
+  std::unique_ptr<ExprAST> Body;
+
+public:
+  FunctionAST(std::unique_ptr<PrototypeAST> Proto,
+              std::unique_ptr<ExprAST> Body)
+      : Proto(std::move(Proto)), Body(std::move(Body)) {}
+  llvm::Function *codegen();
+};

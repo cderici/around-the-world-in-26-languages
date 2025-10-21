@@ -1,4 +1,5 @@
-#include <llvm/IR/Constant.h>
+#include "llvm/IR/DerivedTypes.h"
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
@@ -85,4 +86,27 @@ llvm::Value *CallExprAST::codegen() {
   }
 
   return Builder->CreateCall(CalleeF, ArgsV, "calltmp");
+}
+
+llvm::Function *PrototypeAST::codegen() {
+  // Make the function type
+  // Note that we currently only support functions of type double
+  std::vector<llvm::Type *> Doubles(Args.size(),
+                                    llvm::Type::getDoubleTy(*TheContext));
+
+  llvm::FunctionType *FT = llvm::FunctionType::get(
+      // return type (double), arg types (N doubles), is variadic?
+      llvm::Type::getDoubleTy(*TheContext), Doubles, false);
+
+  // Create the function object with user specified Name
+  // and register it to TheModule's symbol table
+  llvm::Function *F = llvm::Function::Create(
+      FT, llvm::Function::ExternalLinkage, Name, TheModule.get());
+
+  // Names for arguments
+  unsigned Idx = 0;
+  for (auto &Arg : F->args())
+    Arg.setName(Args[Idx++]);
+
+  return F;
 }
