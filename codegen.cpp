@@ -1,6 +1,7 @@
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <map>
 
@@ -31,4 +32,29 @@ llvm::Value *VariableExprAST::codegen() {
     return LogErrorV(s.c_str());
   }
   return V;
+}
+
+llvm::Value *BinaryExprAST::codegen() {
+  llvm::Value *L = LHS->codegen();
+  llvm::Value *R = LHS->codegen();
+
+  if (!L || !R)
+    return nullptr;
+
+  switch (Op) {
+  case '+':
+    return Builder->CreateFAdd(L, R, "addtmp");
+  case '-':
+    return Builder->CreateFSub(L, R, "subtmp");
+  case '*':
+    return Builder->CreateFMul(L, R, "multmp");
+  case '<':
+    L = Builder->CreateFCmpULT(L, R, "cmptmp");
+    // Convert bool 0/1 to double 0.0/1.0
+    return Builder->CreateUIToFP(L, llvm::Type::getDoubleTy(*TheContext),
+                                 "booltmp");
+  default:
+    std::string s = std::format("Invalid binary operator: {}", Op);
+    return LogErrorV(s.c_str());
+  }
 }
