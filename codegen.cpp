@@ -1,4 +1,5 @@
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Verifier.h"
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
@@ -109,4 +110,47 @@ llvm::Function *PrototypeAST::codegen() {
     Arg.setName(Args[Idx++]);
 
   return F;
+}
+
+llvm::Function *FunctionAST::codegen() {
+  // First, check for an existing function from a previous extern declaration.
+  // We might have already created a function object for this Proto before.
+  llvm::Function *TheFunction = TheModule->getFunction(Proto->getName());
+
+  if (!TheFunction)
+    TheFunction = Proto->codegen();
+
+  if (!TheFunction)
+    return nullptr;
+
+  // empty() means it doesn't have any body yet.
+  if (!TheFunction->empty()) {
+    std::string s =
+        std::format("Function {} cannot be redefined", Proto->getName());
+    return (llvm::Function *)LogErrorV(s.c_str());
+  }
+
+  // Create a new basic block named "entry" and insert it into the function.
+  llvm::BasicBlock *BB =
+      llvm::BasicBlock::Create(*TheContext, "entry", TheFunction);
+  Builder->SetInsertPoint(BB);
+
+  // Record function arguments in the NamedValues map.
+  NamedValues.clear();
+  for (auto &Arg : TheFunction->args())
+    NamedValues[std::string(Arg.getName())] = &Arg;
+
+  if (llvm::Value *RetVal = Body->codegen()) {
+    // Finish off the function
+    Builder->CreateRet(RetVal);
+
+    // Validate generated code, check for consistency
+    llvm::verifyFunction(*TheFunction);
+
+    return TheFunction;
+  }
+
+  // err reading body, remove function
+  TheFunction->eraseFromParent();
+  return nullptr;
 }
