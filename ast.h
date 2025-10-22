@@ -1,6 +1,7 @@
 #pragma once
 
 #include <llvm/IR/Value.h>
+#include <map>
 
 // base class for expressions
 class ExprAST {
@@ -77,3 +78,18 @@ public:
       : Proto(std::move(Proto)), Body(std::move(Body)) {}
   llvm::Function *codegen();
 };
+
+// CurTok/getNextToken - provide a simple token buffer. Curtok is the current
+// token the parser is looking at. getNextToken reads another token from the
+// lexer and updates CurTok with its results.
+static int CurTok;
+// This CurTok is like in the tetris game you'd see the next piece that's
+// coming. Parser can look ahead.
+int getNextToken();
+
+// BinopPrecedence
+static std::map<char, int> BinopPrecedence;
+
+std::unique_ptr<FunctionAST> ParseDefinition();
+std::unique_ptr<FunctionAST> ParseTopLevelExpr();
+std::unique_ptr<PrototypeAST> ParseExtern();

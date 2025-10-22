@@ -8,16 +8,7 @@
 #include "error.h"
 #include "lexer.h"
 
-// CurTok/getNextToken - provide a simple token buffer. Curtok is the current
-// token the parser is looking at. getNextToken reads another token from the
-// lexer and updates CurTok with its results.
-static int CurTok;
-// This CurTok is like in the tetris game you'd see the next piece that's
-// coming. Parser can look ahead.
-static int getNextToken() { return CurTok = lexer::gettok(); }
-
-// BinopPrecedence
-static std::map<char, int> BinopPrecedence;
+int getNextToken() { return CurTok = lexer::gettok(); }
 
 static int GetTokenPrecedence() {
   if (!isascii(CurTok))
@@ -192,7 +183,7 @@ static std::unique_ptr<PrototypeAST> ParsePrototype() {
 }
 
 // definition ::= 'def' prototype expression
-static std::unique_ptr<FunctionAST> ParseDefinition() {
+std::unique_ptr<FunctionAST> ParseDefinition() {
   getNextToken(); // consume 'def' keyword
 
   auto Proto = ParsePrototype();
@@ -205,7 +196,7 @@ static std::unique_ptr<FunctionAST> ParseDefinition() {
 }
 
 // toplevelexpr ::= expression
-static std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
+std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
   if (auto E = ParseExpression()) {
     // Make an anonymous proto for a func def with no name, put the expression
     // as the body
@@ -218,74 +209,7 @@ static std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
 // external ::= 'extern' prototype
 // (for forward declaring user functions, and actual external functions, such as
 // sin, cos, etc.)
-static std::unique_ptr<PrototypeAST> ParseExtern() {
+std::unique_ptr<PrototypeAST> ParseExtern() {
   getNextToken(); // consume 'extern' keyword
   return ParsePrototype();
-}
-
-/*
- * Top-level REPL
- * */
-
-static void HandleDefinition() {
-  if (ParseDefinition())
-    fprintf(stderr, "Parsed a function definition\n");
-  else
-    getNextToken(); // FIXME: is this correct?
-}
-
-static void HandleExtern() {
-  if (ParseExtern())
-    fprintf(stderr, "Parsed an extern\n");
-  else
-    getNextToken();
-}
-
-static void HandleTopLevelExpression() {
-  if (ParseTopLevelExpr())
-    fprintf(stderr, "Parsed a top-level expr\n");
-  else
-    getNextToken();
-}
-
-// top ::= definition | external | expression | ';'
-// REPL
-static void MainLoop() {
-  while (true) {
-    fprintf(stderr, "ready> ");
-    switch (CurTok) {
-    case tok_eof:
-      return;
-    case ';':
-      getNextToken(); // ignore toplevel ; symbols
-      break;
-    case tok_def:
-      HandleDefinition();
-      break;
-    case tok_extern:
-      HandleExtern();
-      break;
-    default:
-      HandleTopLevelExpression();
-      break;
-    }
-  }
-}
-
-int main() {
-  // Load the precedences for binary operations
-  // higher value means higher precedence
-  BinopPrecedence['<'] = 10;
-  BinopPrecedence['+'] = 20;
-  BinopPrecedence['-'] = 20;
-  BinopPrecedence['*'] = 40;
-  // TODO: extend
-
-  // Fire up the REPL
-  fprintf(stderr, "ready> ");
-  getNextToken();
-
-  MainLoop();
-
-  return 0;
 }

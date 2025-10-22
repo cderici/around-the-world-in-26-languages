@@ -7,15 +7,10 @@
 #include <llvm/IR/Value.h>
 
 #include <format>
-#include <map>
 
 #include "ast.h"
+#include "codegen.h"
 #include "error.h"
-
-static std::unique_ptr<llvm::LLVMContext> TheContext;
-static std::unique_ptr<llvm::Module> TheModule;
-static std::unique_ptr<llvm::IRBuilder<>> Builder;
-static std::map<std::string, llvm::Value *> NamedValues;
 
 llvm::Value *LogErrorV(const char *Str) {
   error::logError(Str);
