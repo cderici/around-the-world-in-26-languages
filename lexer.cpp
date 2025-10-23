@@ -18,14 +18,14 @@ int lexer::gettok() {
 
   // identifier
   if (isalpha(LastChar)) {
-    IdentifierStr = LastChar;
+    lexer::IdentifierStr = LastChar;
 
     while (std::isalnum((LastChar = getchar())))
-      IdentifierStr += LastChar;
+      lexer::IdentifierStr += LastChar;
 
-    if (IdentifierStr == "def")
+    if (lexer::IdentifierStr == "def")
       return tok_def;
-    if (IdentifierStr == "extern")
+    if (lexer::IdentifierStr == "extern")
       return tok_extern;
     return tok_identifier;
   }
@@ -39,7 +39,7 @@ int lexer::gettok() {
       LastChar = getchar();
     } while (isdigit(LastChar) || LastChar == '.');
 
-    NumVal = std::strtod(NumStr.c_str(), 0);
+    lexer::NumVal = std::strtod(NumStr.c_str(), 0);
     return tok_number;
   }
 
@@ -50,7 +50,7 @@ int lexer::gettok() {
     } while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
 
     if (LastChar != EOF)
-      return gettok();
+      return lexer::gettok();
   }
 
   // check EOF
