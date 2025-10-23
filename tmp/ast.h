@@ -82,7 +82,7 @@ public:
 // CurTok/getNextToken - provide a simple token buffer. Curtok is the current
 // token the parser is looking at. getNextToken reads another token from the
 // lexer and updates CurTok with its results.
-static int CurTok;
+extern int CurTok;
 // This CurTok is like in the tetris game you'd see the next piece that's
 // coming. Parser can look ahead.
 int getNextToken();

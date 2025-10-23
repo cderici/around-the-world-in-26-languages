@@ -1,6 +1,7 @@
 CXX			:= clang++-20
-CXXFLAGS	:= -std=c++23 -O2 -g -DNDEBUG -Wall -Wextra -pedantic -stdlib=libstdc++ --gcc-toolchain=/usr
-SRC			:= *.cpp
+CXXFLAGS	:= -std=c++23 -O2 -g -DNDEBUG -Iinclude -Wall -Wextra -pedantic -stdlib=libstdc++ --gcc-toolchain=/usr
+# *.cpp  all.cpp
+SRC			:= *.cpp src/*.cpp
 LLVMINC   := $(shell llvm-config-20 --includedir)
 LLVMLIBS  := $(shell llvm-config-20 --ldflags --system-libs --libs core)
 TARGET		:= toylang

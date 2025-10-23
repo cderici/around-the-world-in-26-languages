@@ -39,7 +39,7 @@ int lexer::gettok() {
       LastChar = getchar();
     } while (isdigit(LastChar) || LastChar == '.');
 
-    lexer::NumVal = std::strtod(NumStr.c_str(), 0);
+    lexer::NumVal = std::strtod(NumStr.c_str(), nullptr);
     return tok_number;
   }
 

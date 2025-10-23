@@ -8,6 +8,7 @@
 #include "error.h"
 #include "lexer.h"
 
+int CurTok;
 int getNextToken() { return CurTok = lexer::gettok(); }
 
 static int GetTokenPrecedence() {

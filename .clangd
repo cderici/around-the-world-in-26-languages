@@ -1,5 +1,7 @@
 CompileFlags:
   Add: [
     "-std=c++23",
-    "-I/usr/lib/llvm-20/include"
+    "-I/usr/lib/llvm-20/include",
+    "-I../include",
+    "-Iinclude"
   ]
