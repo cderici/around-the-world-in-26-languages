@@ -10,6 +10,7 @@
 #include "llvm/IR/Verifier.h"
 
 #include "codegen.h"
+#include "error.h"
 #include "parser.h"
 
 using namespace llvm;
@@ -20,7 +21,7 @@ std::unique_ptr<IRBuilder<>> Builder;
 std::map<std::string, Value *> NamedValues;
 
 Value *LogErrorV(const char *Str) {
-  fprintf(stderr, "Error: %s\n", Str);
+  error::logError(Str);
   return nullptr;
 }
 
