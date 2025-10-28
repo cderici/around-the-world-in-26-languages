@@ -2,6 +2,7 @@
 #include "codegen.h"
 #include "lexer.h"
 #include "parser.h"
+
 #include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/StandardInstrumentations.h"
@@ -20,6 +21,7 @@ static std::unique_ptr<CGSCCAnalysisManager> TheCGAM;
 static std::unique_ptr<ModuleAnalysisManager> TheMAM;
 static std::unique_ptr<PassInstrumentationCallbacks> ThePIC;
 static std::unique_ptr<StandardInstrumentations> TheSI;
+static ExitOnError ExitOnErr;
 
 static void InitializeModule() {
   // Open a new context and module.
@@ -101,13 +103,33 @@ static void HandleExtern() {
 static void HandleTopLevelExpression() {
   // Evaluate a top-level expression into an anonymous function.
   if (auto FnAST = ParseTopLevelExpr()) {
-    if (auto *FnIR = FnAST->codegen()) {
-      fprintf(stderr, "Read top-level expression:\n");
-      FnIR->print(errs());
-      fprintf(stderr, "\n");
+    if (FnAST->codegen()) {
+      // Create a ResourceTracker to track JITted memory allocated to our
+      // anonymous expression -- that way we can free it after executing.
+      auto RT = TheJIT->getMainJITDylib().createResourceTracker();
 
-      // Remove the anonymous expression.
-      FnIR->eraseFromParent();
+      auto TSM = llvm::orc::ThreadSafeModule(std::move(TheModule),
+                                             std::move(TheContext));
+      ExitOnErr(TheJIT->addModule(std::move(TSM), RT));
+      InitializeModuleAndManagers();
+
+      // Search the JIT for the __anon_expr symbol.
+      auto ExprSymbol = ExitOnErr(TheJIT->lookup("__anon_expr"));
+
+      // Get the symbol's address and cast it to the right type (takes no
+      // arguments, returns a double) so we can call it as a native function.
+
+      double (*FP)() = ExprSymbol.toPtr<double (*)()>();
+      fprintf(stderr, "Evaluated to %f\n", FP());
+
+      // FnIR->print(errs());
+      // fprintf(stderr, "\n");
+      //
+      // // Remove the anonymous expression.
+      // FnIR->eraseFromParent();
+
+      // Delete the anonymous expression module from the JIT.
+      ExitOnErr(RT->remove());
     }
   } else {
     // Skip token for error recovery.
