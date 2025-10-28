@@ -20,8 +20,24 @@ std::unique_ptr<Module> TheModule;
 std::unique_ptr<IRBuilder<>> Builder;
 std::map<std::string, Value *> NamedValues;
 
+std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
+
 Value *LogErrorV(const char *Str) {
   error::logError(Str);
+  return nullptr;
+}
+
+Function *getFunction(std::string Name) {
+  // First, see if the function has already been added to the current module
+  if (auto *F = TheModule->getFunction(Name))
+    return F;
+
+  // Check if we can codegen the declaration from some existing prototype
+  auto FI = FunctionProtos.find(Name);
+  if (FI != FunctionProtos.end())
+    return FI->second->codegen();
+
+  // If no existing prototype exists, return null
   return nullptr;
 }
 
@@ -61,7 +77,7 @@ Value *BinaryExprAST::codegen() {
 
 Value *CallExprAST::codegen() {
   // Look up the name in the global module table.
-  Function *CalleeF = TheModule->getFunction(Callee);
+  Function *CalleeF = getFunction(Callee);
   if (!CalleeF)
     return LogErrorV("Unknown function referenced");
 
@@ -97,8 +113,12 @@ Function *PrototypeAST::codegen() {
 }
 
 Function *FunctionAST::codegen() {
-  // First, check for an existing function from a previous 'extern' declaration.
-  Function *TheFunction = TheModule->getFunction(Proto->getName());
+  // Transfer ownership of the prototype to the FunctionProtos map, but keep a
+  // reference to it for use below.
+  auto &P = *Proto;
+  FunctionProtos[Proto->getName()] = std::move(Proto);
+
+  Function *TheFunction = getFunction(P.getName());
 
   if (!TheFunction)
     TheFunction = Proto->codegen();

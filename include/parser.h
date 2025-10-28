@@ -102,3 +102,5 @@ extern std::map<char, int> BinopPrecedence;
 std::unique_ptr<FunctionAST> ParseDefinition();
 std::unique_ptr<FunctionAST> ParseTopLevelExpr();
 std::unique_ptr<PrototypeAST> ParseExtern();
+
+extern std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
