@@ -19,6 +19,7 @@ std::unique_ptr<LLVMContext> TheContext;
 std::unique_ptr<Module> TheModule;
 std::unique_ptr<IRBuilder<>> Builder;
 std::map<std::string, Value *> NamedValues;
+std::unique_ptr<llvm::orc::KaleidoscopeJIT> TheJIT;
 
 Value *LogErrorV(const char *Str) {
   error::logError(Str);

@@ -1,10 +1,25 @@
+#include "KaleidoscopeJIT.h"
 #include "codegen.h"
 #include "lexer.h"
 #include "parser.h"
+#include "llvm/IR/PassManager.h"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/StandardInstrumentations.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar/GVN.h"
+#include "llvm/Transforms/Scalar/Reassociate.h"
+#include "llvm/Transforms/Scalar/SimplifyCFG.h"
 
 //===----------------------------------------------------------------------===//
 // Top-Level parsing and JIT Driver
 //===----------------------------------------------------------------------===//
+static std::unique_ptr<FunctionPassManager> TheFPM;
+static std::unique_ptr<LoopAnalysisManager> TheLAM;
+static std::unique_ptr<FunctionAnalysisManager> TheFAM;
+static std::unique_ptr<CGSCCAnalysisManager> TheCGAM;
+static std::unique_ptr<ModuleAnalysisManager> TheMAM;
+static std::unique_ptr<PassInstrumentationCallbacks> ThePIC;
+static std::unique_ptr<StandardInstrumentations> TheSI;
 
 static void InitializeModule() {
   // Open a new context and module.
@@ -15,10 +30,52 @@ static void InitializeModule() {
   Builder = std::make_unique<IRBuilder<>>(*TheContext);
 }
 
+void InitializeModuleAndManagers(void) {
+  // Open a new context and module
+  TheContext = std::make_unique<LLVMContext>();
+  TheModule = std::make_unique<Module>("Kaleidoscope JIT", *TheContext);
+  TheModule->setDataLayout(TheJIT->getDataLayout());
+
+  // Create a new builder for the module
+  Builder = std::make_unique<IRBuilder<>>(*TheContext);
+
+  // Create new pass and analysis managers
+  TheFPM = std::make_unique<llvm::FunctionPassManager>();
+  TheLAM = std::make_unique<llvm::LoopAnalysisManager>();
+  TheFAM = std::make_unique<llvm::FunctionAnalysisManager>();
+  TheCGAM = std::make_unique<llvm::CGSCCAnalysisManager>();
+  TheMAM = std::make_unique<llvm::ModuleAnalysisManager>();
+  ThePIC = std::make_unique<llvm::PassInstrumentationCallbacks>();
+  TheSI =
+      std::make_unique<llvm::StandardInstrumentations>(*TheContext,
+                                                       /*DebugLogging*/ true);
+  TheSI->registerCallbacks(*ThePIC, TheMAM.get());
+
+  // Add transform passes.
+
+  // Do simple "peephole" optimizations and big-twiddling opts.
+  TheFPM->addPass(llvm::InstCombinePass());
+
+  // Reassociate expressions.
+  TheFPM->addPass(llvm::ReassociatePass());
+
+  // Eliminate common subexpressions
+  TheFPM->addPass(llvm::GVNPass());
+
+  // Simplify the control flow graph (delete unreachable blocks, etc).
+  TheFPM->addPass(llvm::SimplifyCFGPass());
+
+  // Register analysis passes used in these transform passes.
+  llvm::PassBuilder PB;
+  PB.registerModuleAnalyses(*TheMAM);
+  PB.registerFunctionAnalyses(*TheFAM);
+  PB.crossRegisterProxies(*TheLAM, *TheFAM, *TheCGAM, *TheMAM);
+}
+
 static void HandleDefinition() {
   if (auto FnAST = ParseDefinition()) {
     if (auto *FnIR = FnAST->codegen()) {
-      fprintf(stderr, "Read function definition:");
+      fprintf(stderr, "Read function definition:\n");
       FnIR->print(errs());
       fprintf(stderr, "\n");
     }
@@ -31,7 +88,7 @@ static void HandleDefinition() {
 static void HandleExtern() {
   if (auto ProtoAST = ParseExtern()) {
     if (auto *FnIR = ProtoAST->codegen()) {
-      fprintf(stderr, "Read extern: ");
+      fprintf(stderr, "Read extern:\n");
       FnIR->print(errs());
       fprintf(stderr, "\n");
     }
@@ -45,7 +102,7 @@ static void HandleTopLevelExpression() {
   // Evaluate a top-level expression into an anonymous function.
   if (auto FnAST = ParseTopLevelExpr()) {
     if (auto *FnIR = FnAST->codegen()) {
-      fprintf(stderr, "Read top-level expression:");
+      fprintf(stderr, "Read top-level expression:\n");
       FnIR->print(errs());
       fprintf(stderr, "\n");
 
