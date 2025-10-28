@@ -6,6 +6,7 @@
 #include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/StandardInstrumentations.h"
+#include "llvm/Support/TargetSelect.h"
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Scalar/Reassociate.h"
@@ -22,6 +23,8 @@ static std::unique_ptr<ModuleAnalysisManager> TheMAM;
 static std::unique_ptr<PassInstrumentationCallbacks> ThePIC;
 static std::unique_ptr<StandardInstrumentations> TheSI;
 static ExitOnError ExitOnErr;
+
+std::unique_ptr<llvm::orc::KaleidoscopeJIT> TheJIT;
 
 static void InitializeModule() {
   // Open a new context and module.
@@ -165,6 +168,10 @@ static void MainLoop() {
 //===----------------------------------------------------------------------===//
 
 int main() {
+  InitializeNativeTarget();
+  InitializeNativeTargetAsmPrinter();
+  InitializeNativeTargetAsmParser();
+
   // Install standard binary operators.
   // 1 is lowest precedence.
   BinopPrecedence['<'] = 10;
@@ -176,8 +183,11 @@ int main() {
   fprintf(stderr, "ready> ");
   getNextToken();
 
+  TheJIT = ExitOnErr(llvm::orc::KaleidoscopeJIT::Create());
+
   // Make the module, which holds all the code.
-  InitializeModule();
+  // InitializeModule();
+  InitializeModuleAndManagers();
 
   // Run the main "interpreter loop" now.
   MainLoop();
