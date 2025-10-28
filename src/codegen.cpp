@@ -6,8 +6,10 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/PassManager.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Passes/PassBuilder.h"
 
 #include "codegen.h"
 #include "error.h"
@@ -19,6 +21,10 @@ std::unique_ptr<LLVMContext> TheContext;
 std::unique_ptr<Module> TheModule;
 std::unique_ptr<IRBuilder<>> Builder;
 std::map<std::string, Value *> NamedValues;
+
+std::unique_ptr<FunctionPassManager> TheFPM;
+std::unique_ptr<LoopAnalysisManager> TheLAM;
+std::unique_ptr<FunctionAnalysisManager> TheFAM;
 
 std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
 
@@ -141,6 +147,9 @@ Function *FunctionAST::codegen() {
 
     // Validate the generated code, checking for consistency.
     verifyFunction(*TheFunction);
+
+    // Run the optimizer on the function.
+    TheFPM->run(*TheFunction, *TheFAM);
 
     return TheFunction;
   }

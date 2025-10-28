@@ -15,13 +15,13 @@
 //===----------------------------------------------------------------------===//
 // Top-Level parsing and JIT Driver
 //===----------------------------------------------------------------------===//
-static std::unique_ptr<FunctionPassManager> TheFPM;
-static std::unique_ptr<LoopAnalysisManager> TheLAM;
-static std::unique_ptr<FunctionAnalysisManager> TheFAM;
-static std::unique_ptr<CGSCCAnalysisManager> TheCGAM;
-static std::unique_ptr<ModuleAnalysisManager> TheMAM;
-static std::unique_ptr<PassInstrumentationCallbacks> ThePIC;
-static std::unique_ptr<StandardInstrumentations> TheSI;
+extern std::unique_ptr<FunctionPassManager> TheFPM;
+extern std::unique_ptr<LoopAnalysisManager> TheLAM;
+extern std::unique_ptr<FunctionAnalysisManager> TheFAM;
+std::unique_ptr<CGSCCAnalysisManager> TheCGAM;
+std::unique_ptr<ModuleAnalysisManager> TheMAM;
+std::unique_ptr<PassInstrumentationCallbacks> ThePIC;
+std::unique_ptr<StandardInstrumentations> TheSI;
 static ExitOnError ExitOnErr;
 
 std::unique_ptr<llvm::orc::KaleidoscopeJIT> TheJIT;
