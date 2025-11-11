@@ -26,15 +26,6 @@ static ExitOnError ExitOnErr;
 
 std::unique_ptr<llvm::orc::KaleidoscopeJIT> TheJIT;
 
-static void InitializeModule() {
-  // Open a new context and module.
-  TheContext = std::make_unique<LLVMContext>();
-  TheModule = std::make_unique<Module>("my cool jit", *TheContext);
-
-  // Create a new builder for the module.
-  Builder = std::make_unique<IRBuilder<>>(*TheContext);
-}
-
 void InitializeModuleAndManagers(void) {
   // Open a new context and module
   TheContext = std::make_unique<LLVMContext>();
