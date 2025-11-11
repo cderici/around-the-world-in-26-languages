@@ -140,15 +140,15 @@ static void MainLoop() {
   while (true) {
     fprintf(stderr, "ready> ");
     switch (CurTok) {
-    case tok_eof:
+    case Token::eof:
       return;
-    case ';': // ignore top-level semicolons.
+    case static_cast<Token>(';'): // ignore top-level semicolons.
       getNextToken();
       break;
-    case tok_def:
+    case Token::def:
       HandleDefinition();
       break;
-    case tok_extern:
+    case Token::extern_:
       HandleExtern();
       break;
     default:

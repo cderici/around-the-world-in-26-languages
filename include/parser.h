@@ -1,4 +1,5 @@
 
+#include "lexer.h"
 #include <llvm/IR/Value.h>
 
 #include <map>
@@ -91,10 +92,10 @@ public:
 // CurTok/getNextToken - provide a simple token buffer. Curtok is the current
 // token the parser is looking at. getNextToken reads another token from the
 // lexer and updates CurTok with its results.
-extern int CurTok;
+extern Token CurTok;
 // This CurTok is like in the tetris game you'd see the next piece that's
 // coming. Parser can look ahead.
-int getNextToken();
+Token getNextToken();
 
 // BinopPrecedence
 extern std::map<char, int> BinopPrecedence;

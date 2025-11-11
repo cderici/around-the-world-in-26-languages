@@ -3,18 +3,18 @@
 #include "error.h"
 #include "lexer.h"
 
-int CurTok;
-int getNextToken() { return CurTok = lexer::gettok(); }
+Token CurTok;
+Token getNextToken() { return CurTok = lexer::gettok(); }
 
 std::map<char, int> BinopPrecedence;
 
 /// GetTokPrecedence - Get the precedence of the pending binary operator token.
 static int GetTokPrecedence() {
-  if (!isascii(CurTok))
+  if (!isascii(static_cast<int>(CurTok)))
     return -1;
 
   // Make sure it's a declared binop.
-  int TokPrec = BinopPrecedence[CurTok];
+  int TokPrec = BinopPrecedence[static_cast<int>(CurTok)];
   if (TokPrec <= 0)
     return -1;
   return TokPrec;
@@ -97,11 +97,11 @@ static std::unique_ptr<ExprAST> ParsePrimary() {
   switch (CurTok) {
   default:
     return LogError("unknown token when expecting an expression");
-  case tok_identifier:
+  case Token::identifier:
     return ParseIdentifierExpr();
-  case tok_number:
+  case Token::number:
     return ParseNumberExpr();
-  case '(':
+  case static_cast<Token>('('):
     return ParseParenExpr();
   }
 }
@@ -120,7 +120,7 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
       return LHS;
 
     // Okay, we know this is a binop.
-    int BinOp = CurTok;
+    Token BinOp = CurTok;
     getNextToken(); // eat binop
 
     // Parse the primary expression after the binary operator.
@@ -138,8 +138,8 @@ static std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
     }
 
     // Merge LHS/RHS.
-    LHS =
-        std::make_unique<BinaryExprAST>(BinOp, std::move(LHS), std::move(RHS));
+    LHS = std::make_unique<BinaryExprAST>(static_cast<char>(BinOp),
+                                          std::move(LHS), std::move(RHS));
   }
 }
 
@@ -157,7 +157,7 @@ static std::unique_ptr<ExprAST> ParseExpression() {
 /// prototype
 ///   ::= id '(' id* ')'
 static std::unique_ptr<PrototypeAST> ParsePrototype() {
-  if (CurTok != tok_identifier)
+  if (CurTok != Token::identifier)
     return LogErrorP("Expected function name in prototype");
 
   std::string FnName = lexer::IdentifierStr;
@@ -167,7 +167,7 @@ static std::unique_ptr<PrototypeAST> ParsePrototype() {
     return LogErrorP("Expected '(' in prototype");
 
   std::vector<std::string> ArgNames;
-  while (getNextToken() == tok_identifier)
+  while (getNextToken() == Token::identifier)
     ArgNames.push_back(lexer::IdentifierStr);
   if (CurTok != ')')
     return LogErrorP("Expected ')' in prototype");

@@ -7,7 +7,7 @@ namespace lexer {
 std::string IdentifierStr;
 double NumVal;
 
-int gettok() {
+Token gettok() {
   static int LastChar = ' ';
 
   // Skip any whitespace.
@@ -20,10 +20,10 @@ int gettok() {
       IdentifierStr += LastChar;
 
     if (IdentifierStr == "def")
-      return tok_def;
+      return Token::def;
     if (IdentifierStr == "extern")
-      return tok_extern;
-    return tok_identifier;
+      return Token::extern_;
+    return Token::identifier;
   }
 
   if (isdigit(LastChar) || LastChar == '.') { // Number: [0-9.]+
@@ -34,7 +34,7 @@ int gettok() {
     } while (isdigit(LastChar) || LastChar == '.');
 
     NumVal = strtod(NumStr.c_str(), nullptr);
-    return tok_number;
+    return Token::number;
   }
 
   if (LastChar == '#') {
@@ -49,12 +49,12 @@ int gettok() {
 
   // Check for end of file.  Don't eat the EOF.
   if (LastChar == EOF)
-    return tok_eof;
+    return Token::eof;
 
   // Otherwise, just return the character as its ascii value.
   int ThisChar = LastChar;
   LastChar = getchar();
-  return ThisChar;
+  return static_cast<Token>(ThisChar);
 }
 
 } // namespace lexer

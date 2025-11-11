@@ -2,20 +2,28 @@
 
 #include <string>
 
-enum Token {
-  tok_eof = -1,
+enum class Token : int {
+  eof = -1,
 
-  tok_def = -2,
-  tok_extern = -3,
+  def = -2,
+  extern_ = -3,
 
-  tok_identifier = -4,
-  tok_number = -5,
+  identifier = -4,
+  number = -5,
 };
+
+inline bool operator==(Token t, char c) {
+  return static_cast<int>(t) == static_cast<unsigned char>(c);
+}
+
+inline bool operator==(char c, Token t) { return t == c; }
+
+inline bool operator!=(Token t, char c) { return !(t == c); }
 
 namespace lexer {
 
 extern std::string IdentifierStr;
 extern double NumVal;
 
-int gettok();
+Token gettok();
 } // namespace lexer
