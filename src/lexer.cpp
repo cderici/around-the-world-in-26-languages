@@ -23,6 +23,13 @@ Token gettok() {
       return Token::def;
     if (IdentifierStr == "extern")
       return Token::extern_;
+    if (IdentifierStr == "if")
+      return Token::if_;
+    if (IdentifierStr == "then")
+      return Token::then_;
+    if (IdentifierStr == "else")
+      return Token::else_;
+
     return Token::identifier;
   }
 

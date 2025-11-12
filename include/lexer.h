@@ -10,6 +10,10 @@ enum class Token : int {
 
   identifier = -4,
   number = -5,
+
+  if_ = -6,
+  then_ = -7,
+  else_ = -8,
 };
 
 inline bool operator==(Token t, char c) {
