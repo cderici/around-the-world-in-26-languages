@@ -89,20 +89,50 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
   return std::make_unique<CallExprAST>(IdName, std::move(Args));
 }
 
+/// ifexpr ::= 'if' expression 'then' expression 'else' expression
+static std::unique_ptr<ExprAST> ParseIfExpr() {
+  getNextToken(); // consume 'if'
+
+  auto Cond = ParseExpression();
+  if (!Cond)
+    return nullptr;
+
+  if (CurTok != Token::then_)
+    return LogError("Expected 'then' keyword in an if statement");
+  getNextToken(); // consume 'then'
+
+  auto Then = ParseExpression();
+  if (!Then)
+    return nullptr;
+
+  if (CurTok != Token::else_)
+    return LogError("Expected 'else' keyword in an if statement");
+  getNextToken(); // consume 'else'
+
+  auto Else = ParseExpression();
+  if (!Else)
+    return nullptr;
+
+  return std::make_unique<IfExprAST>(std::move(Cond), std::move(Then),
+                                     std::move(Else));
+}
+
 /// primary
 ///   ::= identifierexpr
 ///   ::= numberexpr
 ///   ::= parenexpr
 static std::unique_ptr<ExprAST> ParsePrimary() {
   switch (CurTok) {
-  default:
-    return LogError("unknown token when expecting an expression");
   case Token::identifier:
     return ParseIdentifierExpr();
   case Token::number:
     return ParseNumberExpr();
+  case Token::if_:
+    return ParseIfExpr();
   case static_cast<Token>('('):
     return ParseParenExpr();
+  default:
+    return LogError("unknown token when expecting an expression");
   }
 }
 
