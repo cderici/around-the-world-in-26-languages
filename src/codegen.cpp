@@ -158,3 +158,65 @@ Function *FunctionAST::codegen() {
   TheFunction->eraseFromParent();
   return nullptr;
 }
+
+Value *IfExprAST::codegen() {
+  Value *CondV = Cond->codegen();
+  if (!CondV)
+    return nullptr;
+
+  CondV = Builder->CreateFCmpONE(
+      CondV, ConstantFP::get(*TheContext, APFloat(0.0)), "ifcond");
+
+  Function *TheFunction = Builder->GetInsertBlock()->getParent();
+
+  // Blocks for then and else cases.
+  BasicBlock *ThenBB = BasicBlock::Create(*TheContext, "then", TheFunction);
+  BasicBlock *ElseBB = BasicBlock::Create(*TheContext, "else");
+  BasicBlock *MergeBB = BasicBlock::Create(*TheContext, "ifcont");
+
+  // This emits the conditional branch code:
+  // br i1 %ifcond, label %then, label %else
+  Builder->CreateCondBr(CondV, ThenBB, ElseBB);
+
+  // Emit then value
+  //
+  Builder->SetInsertPoint(ThenBB);
+
+  Value *ThenV = Then->codegen();
+  if (!ThenV)
+    return nullptr;
+
+  // Emit an unconditional branch to jump to the merger
+  // br label %ifcont
+  Builder->CreateBr(MergeBB);
+
+  // codegen of 'Then' can change the current block, e.g. nested if,
+  // so update ThenBB for the PHI with the up-to-date value.
+  ThenBB = Builder->GetInsertBlock();
+
+  // Emit else block
+  TheFunction->insert(TheFunction->end(), ElseBB);
+  Builder->SetInsertPoint(ElseBB);
+
+  Value *ElseV = Else->codegen();
+  if (!ElseV)
+    return nullptr;
+
+  // unconditional jump to the merger block
+  Builder->CreateBr(MergeBB);
+
+  // Same reason as bbefore, Else->codegen can create bunch of blocks,
+  // We need to make sure we have a handle of the last of them
+  // to wire up the Phi node correctly
+  ElseBB = Builder->GetInsertBlock();
+
+  // Emit merge block
+  TheFunction->insert(TheFunction->end(), MergeBB);
+  Builder->SetInsertPoint(MergeBB);
+
+  PHINode *PN = Builder->CreatePHI(Type::getDoubleTy(*TheContext), 2, "iftmp");
+
+  PN->addIncoming(ThenV, ThenBB);
+  PN->addIncoming(ElseV, ElseBB);
+  return PN;
+}
