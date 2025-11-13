@@ -117,6 +117,53 @@ static std::unique_ptr<ExprAST> ParseIfExpr() {
                                      std::move(Else));
 }
 
+// forexpr ::= 'for' identifier '=' expr ',' expr ',' (',' expr)? 'in' expr
+static std::unique_ptr<ExprAST> ParseForExpr() {
+  getNextToken(); // consume 'for'
+
+  if (CurTok != Token::identifier)
+    return LogError("Expected identifier after 'for'");
+
+  std::string IdName = lexer::IdentifierStr;
+  getNextToken(); // consume identifier
+
+  if (CurTok != '=')
+    return LogError("Expected = initializing loop variable");
+  getNextToken(); // consume =
+
+  auto Start = ParseExpression();
+  if (!Start)
+    return nullptr;
+
+  if (CurTok != ',')
+    return LogError("Expected , after initializing loop variable");
+  getNextToken();
+
+  auto End = ParseExpression();
+  if (!End)
+    return nullptr;
+
+  // The step expression is optional
+  std::unique_ptr<ExprAST> Step;
+  if (CurTok == ',') {
+    getNextToken(); // consume ,
+    Step = ParseExpression();
+    if (!Step)
+      return nullptr;
+  }
+
+  if (CurTok != Token::in_)
+    return LogError("Expected 'in' after for");
+  getNextToken(); // move cursor over 'in' (consume in)
+
+  auto Body = ParseExpression();
+  if (!Body)
+    return nullptr;
+
+  return std::make_unique<ForExprAST>(IdName, std::move(Start), std::move(End),
+                                      std::move(Step), std::move(Body));
+}
+
 /// primary
 ///   ::= identifierexpr
 ///   ::= numberexpr
@@ -129,6 +176,8 @@ static std::unique_ptr<ExprAST> ParsePrimary() {
     return ParseNumberExpr();
   case Token::if_:
     return ParseIfExpr();
+  case Token::for_:
+    return ParseForExpr();
   case static_cast<Token>('('):
     return ParseParenExpr();
   default:
