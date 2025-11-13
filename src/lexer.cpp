@@ -30,6 +30,11 @@ Token gettok() {
     if (IdentifierStr == "else")
       return Token::else_;
 
+    if (IdentifierStr == "for")
+      return Token::for_;
+    if (IdentifierStr == "in")
+      return Token::in_;
+
     return Token::identifier;
   }
 

@@ -14,6 +14,9 @@ enum class Token : int {
   if_ = -6,
   then_ = -7,
   else_ = -8,
+
+  for_ = -9,
+  in_ = -10,
 };
 
 inline bool operator==(Token t, char c) {
