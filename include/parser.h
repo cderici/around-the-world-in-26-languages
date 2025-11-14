@@ -48,6 +48,17 @@ public:
   Value *codegen() override;
 };
 
+class UnaryExprAST : public ExprAST {
+  char Op;
+  std::unique_ptr<ExprAST> Operand;
+
+public:
+  UnaryExprAST(char Op, std::unique_ptr<ExprAST> Operand)
+      : Op(Op), Operand(std::move(Operand)) {}
+
+  Value *codegen() override;
+};
+
 class IfExprAST : public ExprAST {
   std::unique_ptr<ExprAST> Cond, Then, Else;
 
