@@ -236,11 +236,38 @@ static std::unique_ptr<ExprAST> ParseExpression() {
 /// prototype
 ///   ::= id '(' id* ')'
 static std::unique_ptr<PrototypeAST> ParsePrototype() {
-  if (CurTok != Token::identifier)
-    return LogErrorP("Expected function name in prototype");
+  std::string FnName;
 
-  std::string FnName = lexer::IdentifierStr;
-  getNextToken();
+  unsigned Kind = 0; // 0 id, 1 unary, 2 binary
+  unsigned BinaryPrecedence =
+      30; // FIXME: parameterize this with the driver or something
+
+  switch (CurTok) {
+  default:
+    return LogErrorP("Expected function name in prototype");
+  case Token::identifier:
+    FnName = lexer::IdentifierStr;
+    Kind = 0;
+    getNextToken();
+    break;
+  case Token::binary_:
+    getNextToken();
+    if (!isascii(static_cast<int>(CurTok)))
+      return LogErrorP("Expected binary operator");
+    FnName = "binary";
+    FnName += (char)CurTok;
+    Kind = 2;
+    getNextToken();
+
+    // Read precedence if present
+    if (CurTok == Token::number) {
+      if (lexer::NumVal < 1 || lexer::NumVal > 100)
+        return LogErrorP("Invalid Precedence: must be [1..100]");
+      BinaryPrecedence = (unsigned)lexer::NumVal;
+      getNextToken();
+    }
+    break;
+  }
 
   if (CurTok != '(')
     return LogErrorP("Expected '(' in prototype");
