@@ -35,6 +35,11 @@ Token gettok() {
     if (IdentifierStr == "in")
       return Token::in_;
 
+    if (IdentifierStr == "binary")
+      return Token::binary_;
+    if (IdentifierStr == "unary")
+      return Token::unary_;
+
     return Token::identifier;
   }
 
