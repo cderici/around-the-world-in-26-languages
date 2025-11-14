@@ -220,3 +220,102 @@ Value *IfExprAST::codegen() {
   PN->addIncoming(ElseV, ElseBB);
   return PN;
 }
+
+Value *ForExprAST::codegen() {
+  // Output will be several blocks
+  //
+  // entry
+  //  start = startexpr
+  //  goto loop
+  //
+  // loop
+  //  variable = phi [start, entry], [nextVarible, loopend]
+  //  ...
+  //  body (<- this can be multiple blocks)
+  //  ...
+  //
+  // loopend
+  //    step = stepexpr
+  //    nextVariable = variable + step
+  //    endcond = endexpr
+  //    br endcond, loop, afterloop
+  //
+  // afterloop
+  //
+
+  Value *StartVal = Start->codegen();
+  if (!StartVal)
+    return nullptr;
+
+  Function *TheFunction = Builder->GetInsertBlock()->getParent();
+  // Reemember the preheader for the phi node
+  BasicBlock *PreheaderBB = Builder->GetInsertBlock();
+  BasicBlock *LoopBB = BasicBlock::Create(*TheContext, "loop", TheFunction);
+
+  // Fall through the loopBB
+  Builder->CreateBr(LoopBB);
+
+  // Start inserting into the LoopBB
+  Builder->SetInsertPoint(LoopBB);
+
+  // Start phi node with an entry for Start
+  PHINode *Variable =
+      Builder->CreatePHI(Type::getDoubleTy(*TheContext), 2, VarName);
+  Variable->addIncoming(StartVal, PreheaderBB);
+
+  // Within the loop, the variable is defined equal to the PHI node. If it
+  // shadows an existing variable,   we have to restore it, so save now
+  Value *OldVal = NamedValues[VarName];
+  NamedValues[VarName] = Variable;
+
+  // Emit the body of the loop
+  // This, like any other expr, can create many blocks.
+  // Though we don't care about the result of the body, we raise the errors
+  if (!Body->codegen())
+    return nullptr;
+
+  // Emit the step value
+  Value *StepVal = nullptr;
+  if (Step) {
+    StepVal = Step->codegen();
+    if (!StepVal)
+      return nullptr;
+  } else {
+    // default to 1.0
+    StepVal = ConstantFP::get(*TheContext, APFloat(1.0));
+  }
+
+  Value *NextVar = Builder->CreateFAdd(Variable, StepVal, "nextvar");
+
+  // Compute the end condition
+  Value *EndCond = End->codegen();
+  if (!EndCond)
+    return nullptr;
+
+  // Convert condition to a bool by comparing non-equal to 0.0
+  EndCond = Builder->CreateFCmpONE(
+      EndCond, ConstantFP::get(*TheContext, APFloat(0.0)), "loopcond");
+
+  // Create the afterloop block and insert it
+  BasicBlock *LoopEndBB = Builder->GetInsertBlock();
+  BasicBlock *AfterBB =
+      BasicBlock::Create(*TheContext, "afterloop", TheFunction);
+
+  // insert the conditional branch into the end of LoopEndBB
+  Builder->CreateCondBr(EndCond, LoopBB, AfterBB);
+
+  // Any new code will be inserted in After BB
+  Builder->SetInsertPoint(AfterBB);
+
+  // Add the new entry to the phi node
+  Variable->addIncoming(NextVar, LoopEndBB);
+
+  // Restore the unshadowed variable
+  if (OldVal)
+    NamedValues[VarName] = OldVal;
+  else
+    NamedValues.erase(VarName);
+
+  // for expr returns 0.0 for now
+  return Constant::getNullValue(Type::getDoubleTy(*TheContext));
+}
