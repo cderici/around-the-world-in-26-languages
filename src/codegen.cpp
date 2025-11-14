@@ -77,8 +77,15 @@ Value *BinaryExprAST::codegen() {
     // Convert bool 0/1 to double 0.0 or 1.0
     return Builder->CreateUIToFP(L, Type::getDoubleTy(*TheContext), "booltmp");
   default:
-    return LogErrorV("invalid binary operator");
+    break; // If it's not one of these, then it must be a user-defined binary
+           // op, so fall through
   }
+
+  Function *F = getFunction(std::string("binary") + Op);
+  assert(F && "binary operator not found!");
+
+  Value *Ops[2] = {L, R};
+  return Builder->CreateCall(F, Ops, "binop");
 }
 
 Value *CallExprAST::codegen() {
@@ -127,10 +134,11 @@ Function *FunctionAST::codegen() {
   Function *TheFunction = getFunction(P.getName());
 
   if (!TheFunction)
-    TheFunction = Proto->codegen();
-
-  if (!TheFunction)
     return nullptr;
+
+  // If this is a user defined binary operator, install it
+  if (P.isBinaryOp())
+    BinopPrecedence[P.getOperatorName()] = P.getBinaryPrecedence();
 
   // Create a new basic block to start insertion into.
   BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", TheFunction);
