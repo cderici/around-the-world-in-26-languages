@@ -1,5 +1,5 @@
 CXX			:= clang++-20
-CXXFLAGS	:= -std=c++23 -O2 -g -DNDEBUG -Iinclude -Wall -Wextra -pedantic -stdlib=libstdc++ --gcc-toolchain=/usr
+CXXFLAGS	:= -std=c++23 -O2 -g -DNDEBUG -Iinclude -Wall -Wextra -pedantic -stdlib=libstdc++ --gcc-toolchain=/usr -rdynamic
 # *.cpp src/*.cpp
 SRC			:= src/*.cpp *.cpp
 LLVMINC   := $(shell llvm-config-20 --includedir)
