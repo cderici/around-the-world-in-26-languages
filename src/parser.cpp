@@ -266,7 +266,6 @@ static std::unique_ptr<PrototypeAST> ParsePrototype() {
     Kind = 0;
     getNextToken();
     break;
-
   case Token::unary_:
     getNextToken();
     if (!isascii(static_cast<int>(CurTok)))
@@ -276,7 +275,6 @@ static std::unique_ptr<PrototypeAST> ParsePrototype() {
     Kind = 1;
     getNextToken();
     break;
-
   case Token::binary_:
     getNextToken();
     if (!isascii(static_cast<int>(CurTok)))
@@ -308,7 +306,14 @@ static std::unique_ptr<PrototypeAST> ParsePrototype() {
   // success.
   getNextToken(); // eat ')'.
 
-  return std::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
+  // Verify right number of names for operator
+  if (Kind && ArgNames.size() != Kind)
+    return LogErrorP(
+        ("Invalid number of operands for operator kind:" + std::to_string(Kind))
+            .c_str());
+
+  return std::make_unique<PrototypeAST>(FnName, std::move(ArgNames), Kind = !0,
+                                        BinaryPrecedence);
 }
 
 /// definition ::= 'def' prototype expression

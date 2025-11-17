@@ -65,8 +65,12 @@ Value *UnaryExprAST::codegen() {
     return nullptr;
 
   Function *F = getFunction(std::string("unary") + Op);
-  if (!F)
-    return LogErrorV("Unknown unary operator");
+  if (!F) {
+    std::string errStr = "Unknown unary operator: ";
+    errStr.push_back(Op);
+    errStr += "\n";
+    return LogErrorV(errStr.c_str());
+  }
 
   return Builder->CreateCall(F, OperandV, "unop");
 }
