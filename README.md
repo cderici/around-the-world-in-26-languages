@@ -4,11 +4,11 @@
 ![C++23](https://img.shields.io/badge/C%2B%2B-23-blue.svg)
 ![LLVM 20](https://img.shields.io/badge/LLVM-20-orange.svg)
 
-This is my collection of small experimental programming languages, one for every letter of the alphabet, each named after a world city.
+This is a collection of small experimental programming languages, one for every letter of the alphabet, each named after a world city.
 
 Each language explores different designs, features, or optimizations, and they share pieces of compiler infrastructure whenever possible. Some target `LLVM IR`, some target `PTX` for CUDA experiments, some target `MLIR`, and the first language, Athens, includes an LLVM ORC-based JIT repl.
 
-It's a lab to explore ideas in language design and implementation, IR construction, optimization behavior, and runtime. It's an open-ended playground, so it will probably never be fully complete.
+It's my personal lab to explore ideas in language design and implementation, IR construction, optimization behavior, and runtime. It's an open-ended playground, so it will probably never be fully complete.
 
 <br>
 
