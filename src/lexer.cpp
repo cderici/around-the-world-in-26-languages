@@ -1,3 +1,4 @@
+#include <iostream>
 #include <string>
 
 #include "lexer.h"
@@ -7,16 +8,29 @@ namespace lexer {
 std::string IdentifierStr;
 double NumVal;
 
+static std::istream *CurIn = &std::cin;
+static int LastChar = ' ';
+
+void SetLexerInputStream(std::istream &in) {
+  CurIn = &in;
+  LastChar = ' ';
+}
+void ResetLexerInputStreamToSTDIN() {
+  CurIn = &std::cin;
+  LastChar = ' ';
+}
+
+static int getNextChar() { return CurIn->get(); }
+
 Token gettok() {
-  static int LastChar = ' ';
 
   // Skip any whitespace.
   while (isspace(LastChar))
-    LastChar = getchar();
+    LastChar = getNextChar();
 
   if (isalpha(LastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
     IdentifierStr = LastChar;
-    while (isalnum((LastChar = getchar())))
+    while (isalnum((LastChar = getNextChar())))
       IdentifierStr += LastChar;
 
     if (IdentifierStr == "def")
@@ -47,7 +61,7 @@ Token gettok() {
     std::string NumStr;
     do {
       NumStr += LastChar;
-      LastChar = getchar();
+      LastChar = getNextChar();
     } while (isdigit(LastChar) || LastChar == '.');
 
     NumVal = strtod(NumStr.c_str(), nullptr);
@@ -57,7 +71,7 @@ Token gettok() {
   if (LastChar == '#') {
     // Comment until end of line.
     do
-      LastChar = getchar();
+      LastChar = getNextChar();
     while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
 
     if (LastChar != EOF)
@@ -70,7 +84,7 @@ Token gettok() {
 
   // Otherwise, just return the character as its ascii value.
   int ThisChar = LastChar;
-  LastChar = getchar();
+  LastChar = getNextChar();
   return static_cast<Token>(ThisChar);
 }
 

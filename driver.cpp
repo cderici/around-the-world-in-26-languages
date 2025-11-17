@@ -2,6 +2,7 @@
 #include "codegen.h"
 #include "lexer.h"
 #include "parser.h"
+#include <fstream>
 
 #include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
@@ -135,13 +136,18 @@ static void HandleTopLevelExpression() {
   }
 }
 
-/// top ::= definition | external | expression | ';'
-static void MainLoop() {
-  while (true) {
+static void lexerLoop(bool isRepl) {
+  if (isRepl)
     fprintf(stderr, "ready> ");
+
+  getNextToken();
+
+  while (CurTok != Token::eof) {
+
+    if (isRepl)
+      fprintf(stderr, "ready> ");
+
     switch (CurTok) {
-    case Token::eof:
-      return;
     case static_cast<Token>(';'): // ignore top-level semicolons.
       getNextToken();
       break;
@@ -156,6 +162,31 @@ static void MainLoop() {
       break;
     }
   }
+}
+
+/// top ::= definition | external | expression | ';'
+static void LoadRepl() {
+  // Make sure the lexer is reading STDIN
+  lexer::ResetLexerInputStreamToSTDIN();
+
+  lexerLoop(true);
+}
+
+static void LoadFile(const std::string &Path) {
+  std::ifstream in(Path);
+  if (!in.is_open()) {
+    fprintf(stderr, "could not open %s\n", Path.c_str());
+    return;
+  }
+  lexer::SetLexerInputStream(in);
+
+  lexerLoop(false);
+
+  fprintf(stderr, "\n%s loaded.\n", Path.c_str());
+
+  // "in" goes out of scope when LoadFile returns, and CurIn inside the lexer
+  // becomes a dangling pointer
+  lexer::ResetLexerInputStreamToSTDIN();
 }
 
 //===----------------------------------------------------------------------===//
@@ -174,18 +205,17 @@ int main() {
   BinopPrecedence['-'] = 20;
   BinopPrecedence['*'] = 40; // highest.
 
-  // Prime the first token.
-  fprintf(stderr, "ready> ");
-  getNextToken();
-
   TheJIT = ExitOnErr(llvm::orc::KaleidoscopeJIT::Create());
 
   // Make the module, which holds all the code.
   // InitializeModule();
   InitializeModuleAndManagers();
 
+  // Load the runtime support library (written in Athens)
+  LoadFile("lib.ath");
+
   // Run the main "interpreter loop" now.
-  MainLoop();
+  LoadRepl();
 
   // Print out all of the generated code.
   TheModule->print(errs(), nullptr);

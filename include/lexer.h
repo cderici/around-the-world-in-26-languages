@@ -35,5 +35,8 @@ namespace lexer {
 extern std::string IdentifierStr;
 extern double NumVal;
 
+void SetLexerInputStream(std::istream &in);
+void ResetLexerInputStreamToSTDIN();
+
 Token gettok();
 } // namespace lexer
