@@ -1,6 +1,8 @@
 # Around the World in 26 Languages
 
 [![Build Status](https://github.com/cderici/around-the-world-in-26-languages/actions/workflows/build.yml/badge.svg)](https://github.com/cderici/around-the-world-in-26-languages/actions/workflows/build.yml)
+![C++23](https://img.shields.io/badge/C%2B%2B-23-blue.svg)
+![LLVM 20](https://img.shields.io/badge/LLVM-20-orange.svg)
 
 This is my collection of small experimental programming languages, one for every letter of the alphabet, each named after a city and written in C++23. (The city names have no semantic relation to the languages.)
 
