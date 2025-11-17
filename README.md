@@ -37,7 +37,7 @@ This project is my space to explore ideas in language design, IR construction, o
 | Utrecht  |                 |
 | Vienna   |                 |
 | Warsaw   |                 |
-| Xi’an    |                 |
+| Xanthus  |                 |
 | Yerevan  |                 |
 | Zürich   |                 |
 
