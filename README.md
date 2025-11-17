@@ -10,15 +10,13 @@ Each language explores different designs, features, or optimizations, and they s
 
 This project is my space to explore ideas in language design, IR construction, optimization behavior, and runtime implementation. It's an open-ended playground, so it will probably never be fully complete.
 
+<br>
 
-
-## Languages
-
-| Languages | Concept / Focus |
-|----------|-----------------|
-| Athens   |                 |
-| Berlin   |                 |
-| Cairo    |                 |
+| Languages | Concept / Focus | Built On | Status |
+|----------|-----------------|--------------|---------|
+| Athens   |  Enhanced Kaleidoscope-based language with an LLVM ORC JIT repl; forms a base for other languages.  | - | <small>Working</small> |
+| Berlin   |  Lowers affine loops into MLIR suitable for polyhedral analysis using `affine` and `linalg` dialects. Enables loop tiling, fusion, interchange, and dependence analysis before final lowering. | Athens | <small>In&nbsp;Progress</small> |
+| Cairo    |  Compiles to LLVM IR targeting `nvptx64-nvidia-cuda`, producing `PTX` kernels via NVIDIA GPU codegen path. Has an option to launch them via the CUDA driver API.  | Athens | <small>Planning</small> |
 | Dublin   |                 |
 | Edinburgh|                 |
 | Florence |                 |
