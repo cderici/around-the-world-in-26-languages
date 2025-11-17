@@ -8,7 +8,7 @@ This is my collection of small experimental programming languages, one for every
 
 Each language explores different designs, features, or optimizations, and they share pieces of compiler infrastructure whenever possible. Some target `LLVM IR`, some target `PTX` for CUDA experiments, some target `MLIR`, and the first language, Athens, includes an LLVM ORC-based JIT repl.
 
-This project is my space to explore ideas in language design, IR construction, optimization behavior, and runtime implementation. It's an open-ended playground, so it will probably never be fully complete.
+It's a lab to explore ideas in language design and implementation, IR construction, optimization behavior, and runtime. It's an open-ended playground, so it will probably never be fully complete.
 
 <br>
 
