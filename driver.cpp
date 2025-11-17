@@ -193,7 +193,7 @@ static void LoadFile(const std::string &Path) {
 // Main driver code.
 //===----------------------------------------------------------------------===//
 
-int main() {
+int main(int argc, char **argv) {
   InitializeNativeTarget();
   InitializeNativeTargetAsmPrinter();
   InitializeNativeTargetAsmParser();
@@ -214,8 +214,12 @@ int main() {
   // Load the runtime support library (written in Athens)
   LoadFile("lib.ath");
 
-  // Run the main "interpreter loop" now.
-  LoadRepl();
+  if (argc > 1) {
+    LoadFile(argv[1]);
+  } else {
+    // Run the main "interpreter loop" now.
+    LoadRepl();
+  }
 
   // Print out all of the generated code.
   TheModule->print(errs(), nullptr);
