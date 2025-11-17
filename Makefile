@@ -4,7 +4,7 @@ CXXFLAGS	:= -std=c++23 -O2 -g -DNDEBUG -Iinclude -Wall -Wextra -pedantic -stdlib
 SRC			:= src/*.cpp *.cpp
 LLVMINC   := $(shell llvm-config-20 --includedir)
 LLVMLIBS  := $(shell llvm-config-20 --ldflags --system-libs --libs core orcjit native)
-TARGET		:= toylang
+TARGET		:= athens
 
 .PHONY: compile \
 		run \
