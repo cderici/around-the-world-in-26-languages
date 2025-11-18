@@ -1,22 +1,15 @@
-CXX			:= clang++-20
-CXXFLAGS	:= -std=c++23 -O2 -g -DNDEBUG -Iinclude -Wall -Wextra -pedantic -stdlib=libstdc++ --gcc-toolchain=/usr -rdynamic
-# *.cpp src/*.cpp
-SRC			:= src/*.cpp *.cpp
-LLVMINC   := $(shell llvm-config-20 --includedir)
-LLVMLIBS  := $(shell llvm-config-20 --ldflags --system-libs --libs core orcjit native)
-TARGET		:= athens
+LANGS := athens # berlin cairo
 
-.PHONY: compile \
-		run \
-		clean
+.PHONY: all $(LANGS) clean clean-%
 
-compile: $(TARGET)
+all: $(LANGS)
 
-$(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) $(SRC) -I$(LLVMINC) $(LLVMLIBS) -o $(TARGET)
+$(LANGS):
+	$(MAKE) -C langs/$@
+	cp langs/$@/$@ $@
 
-run: $(TARGET)
-	./$(TARGET)
+clean: $(addprefix clean-,$(LANGS))
 
-clean:
-	rm -f $(TARGET) *.o *.out
+clean-%:
+	$(MAKE) -C langs/$* clean || true
+	rm -f $*
