@@ -212,7 +212,7 @@ int main(int argc, char **argv) {
   InitializeModuleAndManagers();
 
   // Load the runtime support library (written in Athens)
-  LoadFile("lib.ath");
+  LoadFile("langs/athens/lib/runtime.ath");
 
   if (argc > 1) {
     LoadFile(argv[1]);
