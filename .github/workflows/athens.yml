@@ -1,0 +1,50 @@
+name: AthensCI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-athens:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install LLVM 20 and Clang 20
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg lsb-release
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 20
+          sudo apt-get install -y llvm-20 llvm-20-dev
+
+      - name: Build Athens
+        run: make athens
+
+      - name: Upload Athens binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: athens-binary
+          path: athens
+
+  test-athens:
+    needs: build-athens
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Athens binary
+        uses: actions/download-artifact@v4
+        with:
+          name: athens-binary
+          path: .
+
+      - name: Test Athens
+        run: |
+          chmod +x ./athens
+          ./athens test-programs/mandelbrot.ath
