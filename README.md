@@ -1,6 +1,6 @@
 # Around the World in 26 Languages
 
-[![Build Status](https://github.com/cderici/around-the-world-in-26-languages/actions/workflows/build.yml/badge.svg)](https://github.com/cderici/around-the-world-in-26-languages/actions/workflows/build.yml)
+<!-- [![Build Status](https://github.com/cderici/around-the-world-in-26-languages/actions/workflows/athens.yml/badge.svg)](https://github.com/cderici/around-the-world-in-26-languages/actions/workflows/athens.yml) -->
 ![C++23](https://img.shields.io/badge/C%2B%2B-23-blue.svg)
 ![LLVM 20](https://img.shields.io/badge/LLVM-20-orange.svg)
 
@@ -18,7 +18,7 @@ There's no semantic relation between the cities and the languages.
 
 | Languages | Concept / Focus | Based&nbsp;On | Status |
 |----------|-----------------|--------------|---------|
-| Athens   |  Enhanced Kaleidoscope-based language with an LLVM ORC JIT repl; forms a base for other languages.  | -- | <small>Working</small> |
+| Athens   |  Enhanced Kaleidoscope-based language with an LLVM ORC JIT repl; forms a base for other languages.  | -- | [![Athens CI](https://github.com/cderici/around-the-world-in-26-languages/actions/workflows/athens.yml/badge.svg)](https://github.com/cderici/around-the-world-in-26-languages/actions/workflows/athens.yml) |
 | Berlin   |  Produces MLIR in `affine`/`linalg` dialects for polyhedral analysis. Enables loop tiling, fusion, interchange, and dependence analysis before final lowering. | Athens | <small>In&nbsp;Progress</small> |
 | Cairo    |  Compiles to LLVM IR targeting `nvptx64-nvidia-cuda`, producing `PTX` kernels via NVIDIA GPU codegen path. Has an option to launch them via the CUDA driver API.  | Athens | <small>Planning</small> |
 | Dublin   |                 |
