@@ -48,3 +48,4 @@ jobs:
         run: |
           chmod +x ./athens
           ./athens test-programs/mandelbrot.ath
+          ./athens test-programs/fib.ath
