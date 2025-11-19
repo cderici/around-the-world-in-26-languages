@@ -164,10 +164,64 @@ static std::unique_ptr<ExprAST> ParseForExpr() {
                                       std::move(Step), std::move(Body));
 }
 
+// varexpr ::= 'var' identifier ('=' expression)? (',' identifier ('='
+// expression)?)* 'in' expression
+static std::unique_ptr<ExprAST> ParseVarExpr() {
+  getNextToken(); // consume 'var'
+  std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
+
+  // At least one name is required
+  if (CurTok != Token::identifier)
+    return LogError("expected identifier after var");
+
+  // Parse the identifier / expr pairs into the VarNames vector
+  while (true) {
+    std::string Name = lexer::IdentifierStr;
+    getNextToken();
+
+    // Read the (optional) initialized if there's any.
+
+    std::unique_ptr<ExprAST> Init = nullptr;
+
+    if (CurTok == '=') {
+      getNextToken(); // move over =
+
+      Init = ParseExpression();
+      if (!Init)
+        return nullptr;
+    }
+
+    VarNames.push_back(std::make_pair(Name, std::move(Init)));
+
+    // are we at the end of the var list?
+    if (CurTok != ',')
+      break;
+
+    getNextToken(); // consume ','
+
+    if (CurTok != Token::identifier)
+      return LogError("expected identifier list after var");
+  }
+
+  // we have to have 'in' at this point
+  if (CurTok != Token::in_)
+    return LogError("expected 'in' keyword after 'var'");
+  getNextToken(); // consume 'in'
+
+  auto Body = ParseExpression();
+  if (!Body)
+    return nullptr;
+
+  return std::make_unique<VarExprAST>(std::move(VarNames), std::move(Body));
+}
+
 /// primary
 ///   ::= identifierexpr
 ///   ::= numberexpr
 ///   ::= parenexpr
+///   ::= ifexpr
+///   ::= forexpr
+///   ::= varexpr
 static std::unique_ptr<ExprAST> ParsePrimary() {
   switch (CurTok) {
   case Token::identifier:
@@ -180,6 +234,8 @@ static std::unique_ptr<ExprAST> ParsePrimary() {
     return ParseForExpr();
   case static_cast<Token>('('):
     return ParseParenExpr();
+  case Token::var_:
+    return ParseVarExpr();
   default:
     return LogError("unknown token when expecting an expression");
   }

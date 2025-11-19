@@ -54,6 +54,9 @@ Token gettok() {
     if (IdentifierStr == "unary")
       return Token::unary_;
 
+    if (IdentifierStr == "var")
+      return Token::var_;
+
     return Token::identifier;
   }
 

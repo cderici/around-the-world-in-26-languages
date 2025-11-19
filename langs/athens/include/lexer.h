@@ -20,6 +20,8 @@ enum class Token : int {
 
   binary_ = -11,
   unary_ = -12,
+
+  var_ = -13,
 };
 
 inline bool operator==(Token t, char c) {
