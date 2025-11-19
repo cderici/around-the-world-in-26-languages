@@ -88,7 +88,43 @@ Value *UnaryExprAST::codegen() {
   return Builder->CreateCall(F, OperandV, "unop");
 }
 
+Value *BinaryExprAST::handleAssignment() {
+  // We need LHS to be an identifier
+  // There is no RTTI (run time type information), LLVM builds without it by
+  // default. If LLVM is built with RTTI, then this can be changed to
+  // dynamic_cast (and it'll output nullptr if the cast is invalid, so we can
+  // check for errors) static_cast is unsafe because if the LHS is not actually
+  // a VariableExprAST, then this is a UB (undefined behavior)
+
+  VariableExprAST *LHSE = static_cast<VariableExprAST *>(LHS.get());
+  if (!LHSE)
+    return LogErrorV("lhs of = must be a variable");
+
+  // Codegen the rhs
+  Value *Val = RHS->codegen();
+  if (!Val)
+    return nullptr;
+
+  // Look up the name in the symbol table
+  Value *Variable = NamedValues[LHSE->getName()];
+  if (!Variable) {
+    std::string errStr = "unknown variable name";
+    errStr += LHSE->getName() + "\n";
+    return LogErrorV(errStr.c_str());
+  }
+
+  Builder->CreateStore(Val, Variable);
+  // Returning the value allows for things like chained assignments
+  // e.g. X = (Y = Z);
+  return Val;
+}
+
 Value *BinaryExprAST::codegen() {
+
+  // Special handling of '=' -> we don't want to emit LHS as an expression.
+  if (Op == '=')
+    return handleAssignment();
+
   Value *L = LHS->codegen();
   Value *R = RHS->codegen();
   if (!L || !R)
