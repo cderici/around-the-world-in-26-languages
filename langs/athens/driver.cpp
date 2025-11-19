@@ -12,6 +12,7 @@
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Scalar/Reassociate.h"
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
+#include "llvm/Transforms/Utils/Mem2Reg.h"
 
 //===----------------------------------------------------------------------===//
 // Top-Level parsing and JIT Driver
@@ -49,6 +50,9 @@ void InitializeModuleAndManagers(void) {
   TheSI->registerCallbacks(*ThePIC, TheMAM.get());
 
   // Add transform passes.
+
+  // Promote allocas to registers
+  TheFPM->addPass(llvm::PromotePass());
 
   // Do simple "peephole" optimizations and big-twiddling opts.
   TheFPM->addPass(llvm::InstCombinePass());

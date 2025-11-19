@@ -20,13 +20,15 @@ using namespace llvm;
 std::unique_ptr<LLVMContext> TheContext;
 std::unique_ptr<Module> TheModule;
 std::unique_ptr<IRBuilder<>> Builder;
-std::map<std::string, Value *> NamedValues;
+std::map<std::string, AllocaInst *> NamedValues;
 
 std::unique_ptr<FunctionPassManager> TheFPM;
 std::unique_ptr<LoopAnalysisManager> TheLAM;
 std::unique_ptr<FunctionAnalysisManager> TheFAM;
 
 std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
+
+/* Some Helpers */
 
 Value *LogErrorV(const char *Str) {
   error::logError(Str);
@@ -47,16 +49,27 @@ Function *getFunction(std::string Name) {
   return nullptr;
 }
 
+static AllocaInst *CreateEntryBlockAlloca(Function *TheFunction,
+                                          StringRef VarName) {
+  IRBuilder<> TmpB(&TheFunction->getEntryBlock(),
+                   TheFunction->getEntryBlock().begin());
+  return TmpB.CreateAlloca(Type::getDoubleTy(*TheContext), nullptr, VarName);
+}
+
+/* Codegen */
+
 Value *NumberExprAST::codegen() {
   return ConstantFP::get(*TheContext, APFloat(Val));
 }
 
 Value *VariableExprAST::codegen() {
   // Look this variable up in the function.
-  Value *V = NamedValues[Name];
-  if (!V)
+  AllocaInst *A = NamedValues[Name];
+  if (!A)
     return LogErrorV("Unknown variable name");
-  return V;
+
+  // Load the value
+  return Builder->CreateLoad(A->getAllocatedType(), A, Name.c_str());
 }
 
 Value *UnaryExprAST::codegen() {
@@ -162,8 +175,18 @@ Function *FunctionAST::codegen() {
 
   // Record the function arguments in the NamedValues map.
   NamedValues.clear();
-  for (auto &Arg : TheFunction->args())
-    NamedValues[std::string(Arg.getName())] = &Arg;
+  for (auto &Arg : TheFunction->args()) {
+    // NamedValues[std::string(Arg.getName())] = &Arg;
+
+    // Crate an alloca for this variable
+    AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, Arg.getName());
+
+    // Store initial value
+    Builder->CreateStore(&Arg, Alloca);
+
+    // Now add it to the symbol table
+    NamedValues[std::string(Arg.getName())] = Alloca;
+  }
 
   if (Value *RetVal = Body->codegen()) {
     // Finish off the function.
@@ -180,6 +203,10 @@ Function *FunctionAST::codegen() {
 
   // Error reading body, remove function.
   TheFunction->eraseFromParent();
+
+  if (P.isBinaryOp())
+    BinopPrecedence.erase(P.getOperatorName());
+
   return nullptr;
 }
 
@@ -246,7 +273,7 @@ Value *IfExprAST::codegen() {
 }
 
 Value *ForExprAST::codegen() {
-  // Output will be several blocks
+  // Output will be several blocks (With the phi node)
   //
   // entry
   //  start = startexpr
@@ -266,31 +293,65 @@ Value *ForExprAST::codegen() {
   //
   // afterloop
   //
+  // ---------------------------
+  //
+  // Output without the phi node (using alloca + mem2reg)
+  //
+  // entry:
+  //  VAR = alloca double
+  //
+  //  start = startexpr
+  //  store start -> VAR
+  //  goto loop
+  //
+  // loop:
+  //  bodyexpr (<- can be multiple blocks)
+  //
+  // loopend:
+  //  step = stepexpr
+  //  endcond = endexpr
+  //
+  //  curvar = load VAR
+  //  nextvar = curvar + step
+  //  store nextvar -> VAR
+  //  br endcond, loop, afterloop
+  //
+  // afterloop:
+  //  .....
+  //
 
+  Function *TheFunction = Builder->GetInsertBlock()->getParent();
+
+  // Create Alloca for the loop variable (in the entry block)
+  AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName);
+
+  // Emit start code without variable in scope
   Value *StartVal = Start->codegen();
   if (!StartVal)
     return nullptr;
 
-  Function *TheFunction = Builder->GetInsertBlock()->getParent();
+  // Store the value into the alloca (i.e. create a store instruction)
+  Builder->CreateStore(StartVal, Alloca);
+
   // Reemember the preheader for the phi node
-  BasicBlock *PreheaderBB = Builder->GetInsertBlock();
+  // BasicBlock *PreheaderBB = Builder->GetInsertBlock();
   BasicBlock *LoopBB = BasicBlock::Create(*TheContext, "loop", TheFunction);
 
-  // Fall through the loopBB
+  // Fall through the loopBB (<-- goto loop)
   Builder->CreateBr(LoopBB);
 
   // Start inserting into the LoopBB
   Builder->SetInsertPoint(LoopBB);
 
   // Start phi node with an entry for Start
-  PHINode *Variable =
-      Builder->CreatePHI(Type::getDoubleTy(*TheContext), 2, VarName);
-  Variable->addIncoming(StartVal, PreheaderBB);
+  // PHINode *Variable = Builder->CreatePHI(Type::getDoubleTy(*TheContext), 2,
+  // VarName);
+  // Variable->addIncoming(StartVal, PreheaderBB);
 
   // Within the loop, the variable is defined equal to the PHI node. If it
   // shadows an existing variable,   we have to restore it, so save now
-  Value *OldVal = NamedValues[VarName];
-  NamedValues[VarName] = Variable;
+  AllocaInst *OldVal = NamedValues[VarName];
+  NamedValues[VarName] = Alloca;
 
   // Emit the body of the loop
   // This, like any other expr, can create many blocks.
@@ -309,7 +370,7 @@ Value *ForExprAST::codegen() {
     StepVal = ConstantFP::get(*TheContext, APFloat(1.0));
   }
 
-  Value *NextVar = Builder->CreateFAdd(Variable, StepVal, "nextvar");
+  // Value *NextVar = Builder->CreateFAdd(Variable, StepVal, "nextvar");
 
   // Compute the end condition
   Value *EndCond = End->codegen();
@@ -320,8 +381,16 @@ Value *ForExprAST::codegen() {
   EndCond = Builder->CreateFCmpONE(
       EndCond, ConstantFP::get(*TheContext, APFloat(0.0)), "loopcond");
 
+  // load, increment, and re-store the alloca (the loop variable)
+  // Note that because it's an Alloca, any BasicBlocks in the loop body can
+  // freely mutate the variable and it'll all be reflected in the "store"
+  Value *CurVal =
+      Builder->CreateLoad(Alloca->getAllocatedType(), Alloca, VarName.c_str());
+  Value *NextVar = Builder->CreateFAdd(CurVal, StepVal, "nextvar");
+  Builder->CreateStore(NextVar, Alloca);
+
   // Create the afterloop block and insert it
-  BasicBlock *LoopEndBB = Builder->GetInsertBlock();
+  // BasicBlock *LoopEndBB = Builder->GetInsertBlock();
   BasicBlock *AfterBB =
       BasicBlock::Create(*TheContext, "afterloop", TheFunction);
 
@@ -332,7 +401,7 @@ Value *ForExprAST::codegen() {
   Builder->SetInsertPoint(AfterBB);
 
   // Add the new entry to the phi node
-  Variable->addIncoming(NextVar, LoopEndBB);
+  // Variable->addIncoming(NextVar, LoopEndBB);
 
   // Restore the unshadowed variable
   if (OldVal)
