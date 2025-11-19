@@ -84,6 +84,10 @@ enum class Mode { Run, EmitLLVMIR };
 static void HandleDefinition(Mode mode, bool verbose) {
   if (auto FnAST = ParseDefinition()) {
     if (auto *FnIR = FnAST->codegen()) {
+      if (mode == Mode::EmitLLVMIR) {
+        FnIR->print(outs());
+      }
+
       if (verbose) {
         fprintf(stderr, "Read function definition:\n");
         FnIR->print(errs());
@@ -102,6 +106,11 @@ static void HandleDefinition(Mode mode, bool verbose) {
 static void HandleExtern(Mode mode, bool verbose) {
   if (auto ProtoAST = ParseExtern()) {
     if (auto *FnIR = ProtoAST->codegen()) {
+
+      if (mode == Mode::EmitLLVMIR) {
+        FnIR->print(outs());
+      }
+
       if (verbose) {
         fprintf(stderr, "Read extern:\n");
         FnIR->print(errs());
@@ -216,15 +225,17 @@ const char *HelpText = R"(Usage: athens [options] [file]
 
 Options:
   --llvmir        Emit LLVM IR instead of executing the program
+                  All output except LLVM IR are put in stderr
   -h, --help      Show this help message and exit
   -v, --verbose   Print internal stuff
 
 Arguments:
-  file            Athens source file (.ath). If omitted, the REPL starts.
+  file            Athens source file (.ath).
+                  If omitted, the REPL starts.
 
 Examples:
   athens foo.ath          Compile and run foo.ath
-  athens --llvmir foo.ath Emit LLVM IR for foo.ath
+  athens --llvmir foo.ath Emit LLVM IR for foo.ath on stdout
   athens                  Start the REPL
 )";
 
@@ -266,11 +277,13 @@ int main(int argc, char **argv) {
       InputFile = argv[i];
   }
 
-  if (printHelp)
+  if (printHelp) {
     std::cout << HelpText;
+    return 0;
+  }
 
   // Load the runtime support library (written in Athens)
-  LoadFile("langs/athens/lib/runtime.ath", mode, verbose);
+  LoadFile("langs/athens/lib/runtime.ath", Mode::Run, verbose);
 
   if (InputFile) {
     LoadFile(InputFile, mode, verbose);
