@@ -308,6 +308,52 @@ Value *IfExprAST::codegen() {
   return PN;
 }
 
+Value *VarExprAST::codegen() {
+  std::vector<AllocaInst *> OldBindings;
+
+  Function *TheFunction = Builder->GetInsertBlock()->getParent();
+
+  // Register all variables and emit their initializers.
+  for (unsigned i = 0, e = VarNames.size(); i != e; ++i) {
+    const std::string &VarName = VarNames[i].first;
+    ExprAST *Init = VarNames[i].second.get();
+
+    // Emit initialized *before* putting the variable in scope.
+    // 1) if x is not defined, I don't wanna deal with x = x;
+    // 2) if x is defined, I want to support x = x; (x in RHS refers to the old
+    // value)
+    Value *InitVal;
+    if (Init) {
+      InitVal = Init->codegen();
+      if (!InitVal)
+        return nullptr;
+    } else {
+      // default to 0.0 if not initialized
+      InitVal = ConstantFP::get(*TheContext, APFloat(0.0));
+    }
+
+    AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName);
+    Builder->CreateStore(InitVal, Alloca);
+
+    // Remember the old value so we can restore it when we're done generating
+    // code for these assignments in this var/in block (i.e. deshadow)
+    OldBindings.push_back(NamedValues[VarName]);
+
+    NamedValues[VarName] = Alloca;
+  }
+
+  // codegen the body
+  Value *BodyVal = Body->codegen();
+  if (!BodyVal)
+    return nullptr;
+
+  // pop all vars out of scope
+  for (unsigned i = 0, e = VarNames.size(); i != e; ++i)
+    NamedValues[VarNames[i].first] = OldBindings[i];
+
+  return BodyVal;
+}
+
 Value *ForExprAST::codegen() {
   // Output will be several blocks (With the phi node)
   //
