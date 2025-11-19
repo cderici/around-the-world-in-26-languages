@@ -3,6 +3,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include <fstream>
+#include <iostream>
 
 #include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
@@ -73,12 +74,21 @@ void InitializeModuleAndManagers(void) {
   PB.crossRegisterProxies(*TheLAM, *TheFAM, *TheCGAM, *TheMAM);
 }
 
-static void HandleDefinition() {
+static void printIfVerbose(bool verbose, const char *str) {
+  if (verbose)
+    std::cerr << str;
+}
+
+enum class Mode { Run, EmitLLVMIR };
+
+static void HandleDefinition(Mode mode, bool verbose) {
   if (auto FnAST = ParseDefinition()) {
     if (auto *FnIR = FnAST->codegen()) {
-      fprintf(stderr, "Read function definition:\n");
-      FnIR->print(errs());
-      fprintf(stderr, "\n");
+      if (verbose) {
+        fprintf(stderr, "Read function definition:\n");
+        FnIR->print(errs());
+        fprintf(stderr, "\n");
+      }
       ExitOnErr(TheJIT->addModule(
           orc::ThreadSafeModule(std::move(TheModule), std::move(TheContext))));
       InitializeModuleAndManagers();
@@ -89,12 +99,14 @@ static void HandleDefinition() {
   }
 }
 
-static void HandleExtern() {
+static void HandleExtern(Mode mode, bool verbose) {
   if (auto ProtoAST = ParseExtern()) {
     if (auto *FnIR = ProtoAST->codegen()) {
-      fprintf(stderr, "Read extern:\n");
-      FnIR->print(errs());
-      fprintf(stderr, "\n");
+      if (verbose) {
+        fprintf(stderr, "Read extern:\n");
+        FnIR->print(errs());
+        fprintf(stderr, "\n");
+      }
       FunctionProtos[ProtoAST->getName()] = std::move(ProtoAST);
     }
   } else {
@@ -103,7 +115,7 @@ static void HandleExtern() {
   }
 }
 
-static void HandleTopLevelExpression() {
+static void HandleTopLevelExpression(Mode mode, bool verbose) {
   // Evaluate a top-level expression into an anonymous function.
   if (auto FnAST = ParseTopLevelExpr()) {
     if (FnAST->codegen()) {
@@ -123,7 +135,7 @@ static void HandleTopLevelExpression() {
       // arguments, returns a double) so we can call it as a native function.
 
       double (*FP)() = ExprSymbol.toPtr<double (*)()>();
-      fprintf(stderr, "Evaluated to %f\n", FP());
+      fprintf(stderr, "%f\n", FP());
 
       // FnIR->print(errs());
       // fprintf(stderr, "\n");
@@ -140,53 +152,56 @@ static void HandleTopLevelExpression() {
   }
 }
 
-static void lexerLoop(bool isRepl) {
+static void lexerLoop(bool isRepl, Mode mode, bool verbose) {
   if (isRepl)
-    fprintf(stderr, "ready> ");
+    fprintf(stderr, "Welcome to Athens!\n> ");
 
   getNextToken();
 
   while (CurTok != Token::eof) {
 
-    if (isRepl)
-      fprintf(stderr, "ready> ");
+    if (isRepl) {
+      fprintf(stderr, "> ");
+    }
 
     switch (CurTok) {
     case static_cast<Token>(';'): // ignore top-level semicolons.
       getNextToken();
       break;
     case Token::def:
-      HandleDefinition();
+      HandleDefinition(mode, verbose);
       break;
     case Token::extern_:
-      HandleExtern();
+      HandleExtern(mode, verbose);
       break;
     default:
-      HandleTopLevelExpression();
+      HandleTopLevelExpression(mode, verbose);
       break;
     }
   }
 }
 
 /// top ::= definition | external | expression | ';'
-static void LoadRepl() {
+static void LoadRepl(Mode mode, bool verbose) {
   // Make sure the lexer is reading STDIN
   lexer::ResetLexerInputStreamToSTDIN();
 
-  lexerLoop(true);
+  lexerLoop(true, mode, verbose);
 }
 
-static void LoadFile(const std::string &Path) {
+static void LoadFile(const std::string &Path, Mode mode, bool verbose) {
   std::ifstream in(Path);
   if (!in.is_open()) {
-    fprintf(stderr, "could not open %s\n", Path.c_str());
+    std::string msg = "could not open " + Path + "\n";
+    printIfVerbose(verbose, msg.c_str());
     return;
   }
   lexer::SetLexerInputStream(in);
 
-  lexerLoop(false);
+  lexerLoop(false, mode, verbose);
 
-  fprintf(stderr, "\n%s loaded.\n", Path.c_str());
+  std::string msg = "\n" + Path + " loaded.\n\n";
+  printIfVerbose(verbose, msg.c_str());
 
   // "in" goes out of scope when LoadFile returns, and CurIn inside the lexer
   // becomes a dangling pointer
@@ -196,6 +211,22 @@ static void LoadFile(const std::string &Path) {
 //===----------------------------------------------------------------------===//
 // Main driver code.
 //===----------------------------------------------------------------------===//
+
+const char *HelpText = R"(Usage: athens [options] [file]
+
+Options:
+  --llvmir        Emit LLVM IR instead of executing the program
+  -h, --help      Show this help message and exit
+  -v, --verbose   Print internal stuff
+
+Arguments:
+  file            Athens source file (.ath). If omitted, the REPL starts.
+
+Examples:
+  athens foo.ath          Compile and run foo.ath
+  athens --llvmir foo.ath Emit LLVM IR for foo.ath
+  athens                  Start the REPL
+)";
 
 int main(int argc, char **argv) {
   InitializeNativeTarget();
@@ -216,14 +247,36 @@ int main(int argc, char **argv) {
   // InitializeModule();
   InitializeModuleAndManagers();
 
-  // Load the runtime support library (written in Athens)
-  LoadFile("langs/athens/lib/runtime.ath");
+  bool printHelp = false;
+  bool verbose = false;
 
-  if (argc > 1) {
-    LoadFile(argv[1]);
+  Mode mode = Mode::Run;
+  const char *InputFile = nullptr;
+
+  for (int i = 1; i < argc; ++i) {
+    if (std::strcmp(argv[i], "--llvmir") == 0)
+      mode = Mode::EmitLLVMIR;
+    else if ((std::strcmp(argv[i], "-h") == 0) ||
+             (std::strcmp(argv[i], "--help") == 0))
+      printHelp = true;
+    else if ((std::strcmp(argv[i], "-v") == 0) ||
+             (std::strcmp(argv[i], "--verbose") == 0))
+      verbose = true;
+    else
+      InputFile = argv[i];
+  }
+
+  if (printHelp)
+    std::cout << HelpText;
+
+  // Load the runtime support library (written in Athens)
+  LoadFile("langs/athens/lib/runtime.ath", mode, verbose);
+
+  if (InputFile) {
+    LoadFile(InputFile, mode, verbose);
   } else {
     // Run the main "interpreter loop" now.
-    LoadRepl();
+    LoadRepl(mode, verbose);
   }
 
   // Print out all of the generated code.
