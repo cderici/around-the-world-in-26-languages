@@ -20,8 +20,8 @@ There's no semantic relation between the cities and the languages.
 |----------|-----------------|--------------|---------|
 | [Athens](https://github.com/cderici/around-the-world-in-26-languages/blob/main/langs/athens/README.md)   |  Enhanced Kaleidoscope-style language targeting LLVM IR, with an LLVM ORC JIT repl.  | -- | [![Athens CI](https://github.com/cderici/around-the-world-in-26-languages/actions/workflows/athens.yml/badge.svg)](https://github.com/cderici/around-the-world-in-26-languages/actions/workflows/athens.yml) |
 | Berlin   |  Produces MLIR in `affine`/`linalg` dialects for polyhedral analysis. Enables loop tiling, fusion, interchange, and dependence analysis before final lowering. | Athens | <small>Planning</small> |
-| Cairo    |  Compiles to LLVM IR targeting `nvptx64-nvidia-cuda`, producing `PTX` kernels via NVIDIA GPU codegen path. Has an option to launch them via the CUDA driver API.  | Athens | <small>In&nbsp;Progress</small> |
-| Dublin   | A shot at *architecture-aware* design for large-scale systems. Focuses on making architectural considerations explicit, enforcable, and visible. First-class modules, layers, dependency directions, etc, for clean separation, stable interfaces, and explicit/intentional coupling. | -- | <small>Planning</small> |
+| Cairo    |  This is basically Athens with LLVM IR targeting `nvptx64-nvidia-cuda`, producing `PTX` kernels via NVIDIA GPU codegen. Has an option to launch them via the CUDA driver API.  | Athens | <small>In&nbsp;Progress</small> |
+| Dublin   |  A shot at *architecture-aware* design for large-scale systems. I want to focus on making architectural considerations explicit and enforcable. First-class modules, layers, dependency directions, etc, for clean separation, stable interfaces, and explicit/intentional coupling. | -- | <small>Planning</small> |
 | Edinburgh|                 |
 | Florence |                 |
 | Geneva   |                 |
