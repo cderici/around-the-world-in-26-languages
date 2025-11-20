@@ -32,7 +32,7 @@ std::unique_ptr<llvm::orc::KaleidoscopeJIT> TheJIT;
 void InitializeModuleAndManagers(void) {
   // Open a new context and module
   TheContext = std::make_unique<LLVMContext>();
-  TheModule = std::make_unique<Module>("Kaleidoscope JIT", *TheContext);
+  TheModule = std::make_unique<Module>("Athens Top Module", *TheContext);
   TheModule->setDataLayout(TheJIT->getDataLayout());
 
   // Create a new builder for the module
@@ -293,7 +293,8 @@ int main(int argc, char **argv) {
   }
 
   // Print out all of the generated code.
-  TheModule->print(errs(), nullptr);
+  if (verbose)
+    TheModule->print(errs(), nullptr);
 
   return 0;
 }
