@@ -40,10 +40,4 @@
 # debug information files
 *.dwo
 
-# ignore language binary aliases
-athens
-
-# don't ignore language directories
-!/athens/
-
 tmp
