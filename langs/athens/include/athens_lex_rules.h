@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../shared/frontend/lex/lex_language_rules.h"
+#include "../../../shared/frontend/lex/include/lex_language_rules.h"
 #include <optional>
 #include <span>
 #include <string_view>
