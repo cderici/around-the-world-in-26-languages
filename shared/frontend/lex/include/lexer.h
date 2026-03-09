@@ -28,6 +28,7 @@ private:
   Token lexPunctOrInvalid();
   bool consumeCommentMaybe();
 
+  // state
   CharStream &cs_;
   const ILexLanguageRules &langLexConfig_;
   std::vector<TriviaPiece> trivia_;
