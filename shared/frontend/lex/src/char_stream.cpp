@@ -27,21 +27,28 @@ char CharStream::peek2() const {
 
 std::size_t CharStream::size() const { return buffer_.size(); }
 
-char CharStream::get() {
-  // eof check
-  if (cursor_ >= buffer_.size())
+char CharStream::consumeOne() {
+  const char current_char = peek();
+  if (current_char == '\0')
     return '\0';
 
-  // how to actually consume?
-  char current_char = buffer_[cursor_++];
-  if (current_char == '\n') {
-    line_++;
-    col_ = 1;
-  } else {
-    col_++;
-  }
-
+  advance(1);
   return current_char;
+}
+
+std::size_t CharStream::advance(std::size_t n) {
+  std::size_t consumed = 0;
+  while (consumed < n && cursor_ < buffer_.size()) {
+    const char current_char = buffer_[cursor_++];
+    if (current_char == '\n') {
+      ++line_;
+      col_ = 1;
+    } else {
+      ++col_;
+    }
+    ++consumed;
+  }
+  return consumed;
 }
 
 bool CharStream::eof() const { return cursor_ >= buffer_.size(); }

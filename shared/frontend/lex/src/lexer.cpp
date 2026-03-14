@@ -68,7 +68,7 @@ void Lexer::consumeTrivia() {
       const std::size_t start_line = cs_.line();
       const std::size_t start_column = cs_.column();
 
-      cs_.get();
+      cs_.consumeOne();
 
       const std::size_t end_offset = cs_.offset();
       trivia_.push_back(TriviaPiece{
@@ -96,7 +96,7 @@ void Lexer::consumeTrivia() {
         const char wc = cs_.peek();
         if (wc == '\n' || !std::isspace(static_cast<unsigned char>(wc)))
           break;
-        cs_.get();
+        cs_.consumeOne();
       }
 
       const std::size_t end_offset = cs_.offset();
@@ -152,28 +152,26 @@ bool Lexer::consumeCommentMaybe() {
       continue;
 
     // consume opening delimiter
-    for (std::size_t i = 0; i < delimSize; ++i)
-      cs_.get();
+    cs_.advance(delimSize);
 
     if (delim.kind == frontend::lex::CommentDelimiter::Kind::Line) {
       while (!cs_.eof() && cs_.peek() != '\n')
-        cs_.get();
+        cs_.consumeOne();
     } else {
       const std::string_view close = delim.close;
 
       if (close.empty()) {
         while (!cs_.eof())
-          cs_.get();
+          cs_.consumeOne();
       } else {
         while (!cs_.eof()) {
           const std::size_t cur = cs_.offset();
           if (cur + close.size() <= cs_.size() &&
               cs_.view(cur, cur + close.size()) == close) {
-            for (std::size_t i = 0; i < close.size(); ++i)
-              cs_.get();
+            cs_.advance(close.size());
             break;
           }
-          cs_.get();
+          cs_.consumeOne();
         }
       }
     }

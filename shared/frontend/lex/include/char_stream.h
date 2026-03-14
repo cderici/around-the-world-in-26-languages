@@ -35,7 +35,8 @@ public:
 
   char peek() const; // '\0' on eof
   char peek2() const;
-  char get(); // consume
+  char consumeOne(); // consume one char
+  std::size_t advance(std::size_t n);
   bool eof() const;
   std::size_t size() const;
 
