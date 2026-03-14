@@ -51,7 +51,13 @@ Token Lexer::next() {
 const std::vector<TriviaPiece> &Lexer::leadingTrivia() const { return trivia_; }
 
 void Lexer::consumeTrivia() {
-  while (!cs_.eof()) {
+  bool consumed_any = true;
+  // Keep going as long as we don't hit an eof and we consumed something in the
+  // previous run (if we didn't consume anything in the previous run, then we're
+  // done)
+  while (!cs_.eof() && consumed_any) {
+    consumed_any = false;
+
     char c = cs_.peek();
 
     if (c == '\n') {
@@ -74,6 +80,7 @@ void Lexer::consumeTrivia() {
               .end_column = cs_.column(),
           },
       });
+      consumed_any = true;
       continue;
     }
 
@@ -102,12 +109,18 @@ void Lexer::consumeTrivia() {
               .end_column = cs_.column(),
           },
       });
+      consumed_any = true;
       continue;
     }
 
-    break;
+    if (consumeCommentMaybe()) {
+      consumed_any = true;
+      continue;
+    }
   }
 }
+
+bool Lexer::consumeCommentMaybe() { return false; }
 
 // invariant must be kept for lexing functions, always consume at least one char
 // unless EOF
@@ -115,11 +128,9 @@ void Lexer::consumeTrivia() {
 /*
 
 private:
-void consumeTrivia();
 Token lexIdentifierOrKeyword();
 Token lexNumber();
 Token lexPunctOrInvalid();
-bool consumeCommentMaybe();
 
 CharStream & cs_;
 const ILexLanguageRules &langLexConfig_;
