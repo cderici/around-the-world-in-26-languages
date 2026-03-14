@@ -37,6 +37,7 @@ public:
   char peek2() const;
   char get(); // consume
   bool eof() const;
+  std::size_t size() const;
 
   std::size_t offset() const;
   std::size_t line() const;   // 1-based

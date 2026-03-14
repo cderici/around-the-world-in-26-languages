@@ -1,4 +1,5 @@
 #include "../include/char_stream.h"
+#include <cstddef>
 #include <iterator>
 
 namespace frontend::lex {
@@ -23,6 +24,8 @@ char CharStream::peek2() const {
 
   return buffer_[cursor_ + 1];
 }
+
+std::size_t CharStream::size() const { return buffer_.size(); }
 
 char CharStream::get() {
   // eof check

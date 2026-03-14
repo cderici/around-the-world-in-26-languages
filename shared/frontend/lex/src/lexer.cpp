@@ -1,6 +1,9 @@
 #include "lexer.h"
+#include "lex_language_rules.h"
 #include "token.h"
 #include <cctype>
+#include <cstddef>
+#include <span>
 #include <string_view>
 #include <vector>
 
@@ -120,7 +123,79 @@ void Lexer::consumeTrivia() {
   }
 }
 
-bool Lexer::consumeCommentMaybe() { return false; }
+// consumeCommentMaybe checks whether a comment starts at the current cursor.
+// If yes, it consumes full comment, records TriviaPiece, return true
+bool Lexer::consumeCommentMaybe() {
+  std::span<const frontend::lex::CommentDelimiter> commentDelims =
+      langLexConfig_.comments();
+
+  for (auto &delim : commentDelims) {
+    // For each delimiter, we'll check if the current cursor is "open"
+    auto delimOpen = delim.open;
+    // guarding aainst bad config from upstream
+    if (delimOpen.empty())
+      continue;
+
+    const std::size_t delimSize = delimOpen.size();
+
+    // cursor position
+    const std::size_t start_offset = cs_.offset();
+    const std::size_t start_line = cs_.line();
+    const std::size_t start_column = cs_.column();
+
+    if (start_offset + delimSize > cs_.size())
+      continue;
+
+    std::string_view candidate =
+        cs_.view(start_offset, start_offset + delimSize);
+    if (candidate != delimOpen)
+      continue;
+
+    // consume opening delimiter
+    for (std::size_t i = 0; i < delimSize; ++i)
+      cs_.get();
+
+    if (delim.kind == frontend::lex::CommentDelimiter::Kind::Line) {
+      while (!cs_.eof() && cs_.peek() != '\n')
+        cs_.get();
+    } else {
+      const std::string_view close = delim.close;
+
+      if (close.empty()) {
+        while (!cs_.eof())
+          cs_.get();
+      } else {
+        while (!cs_.eof()) {
+          const std::size_t cur = cs_.offset();
+          if (cur + close.size() <= cs_.size() &&
+              cs_.view(cur, cur + close.size()) == close) {
+            for (std::size_t i = 0; i < close.size(); ++i)
+              cs_.get();
+            break;
+          }
+          cs_.get();
+        }
+      }
+    }
+
+    const std::size_t end_offset = cs_.offset();
+    trivia_.push_back(TriviaPiece{
+        TriviaKind::Comment,
+        cs_.view(start_offset, end_offset),
+        SourceLoc{
+            .start_offset = start_offset,
+            .end_offset = end_offset,
+            .start_line = start_line,
+            .start_column = start_column,
+            .end_line = cs_.line(),
+            .end_column = cs_.column(),
+        },
+    });
+    return true;
+  }
+
+  return false;
+}
 
 // invariant must be kept for lexing functions, always consume at least one char
 // unless EOF
