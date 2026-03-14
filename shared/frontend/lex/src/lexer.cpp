@@ -1,8 +1,11 @@
 #include "lexer.h"
 #include "lex_language_rules.h"
+#include "source_loc.h"
 #include "token.h"
 #include <cctype>
 #include <cstddef>
+#include <iterator>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -198,10 +201,53 @@ bool Lexer::consumeCommentMaybe() {
 // invariant must be kept for lexing functions, always consume at least one char
 // unless EOF
 
+Token Lexer::lexIdentifierOrKeyword() {
+
+  std::size_t startPos = cs_.position();
+  std::size_t startLine = cs_.line();
+  std::size_t startCol = cs_.column();
+
+  while (!cs_.eof() && langLexConfig_.isIdentContinue(cs_.peek())) {
+    cs_.consumeOne();
+  }
+
+  std::size_t endPos = cs_.position();
+  std::size_t endLine = cs_.line();
+  std::size_t endCol = cs_.column();
+
+  std::string_view lexeme = cs_.view(startPos, endPos);
+
+  std::optional<frontend::lex::TokenKind> itsAKeyword =
+      langLexConfig_.keyword(lexeme);
+
+  if (itsAKeyword) {
+    return Token{itsAKeyword.value(), lexeme,
+                 SourceLoc{
+                     .start_offset = startPos,
+                     .end_offset = endPos,
+                     .start_line = startLine,
+                     .start_column = startCol,
+                     .end_line = endLine,
+                     .end_column = endCol,
+                 },
+                 LiteralValue{}};
+  }
+
+  return Token{frontend::lex::TokenKind::Identifier, lexeme,
+               SourceLoc{
+                   .start_offset = startPos,
+                   .end_offset = endPos,
+                   .start_line = startLine,
+                   .start_column = startCol,
+                   .end_line = endLine,
+                   .end_column = endCol,
+               },
+               LiteralValue{}};
+}
+
 /*
 
 private:
-Token lexIdentifierOrKeyword();
 Token lexNumber();
 Token lexPunctOrInvalid();
 
