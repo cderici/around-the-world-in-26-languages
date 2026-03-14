@@ -53,7 +53,7 @@ std::size_t CharStream::advance(std::size_t n) {
 
 bool CharStream::eof() const { return cursor_ >= buffer_.size(); }
 
-std::size_t CharStream::offset() const { return cursor_; }
+std::size_t CharStream::position() const { return cursor_; }
 std::size_t CharStream::line() const { return line_; }
 std::size_t CharStream::column() const { return col_; }
 

@@ -28,8 +28,8 @@ Token Lexer::next() {
   if (cs_.eof())
     return Token{TokenKind::Eof, std::string_view{},
                  SourceLoc{
-                     .start_offset = cs_.offset(),
-                     .end_offset = cs_.offset(),
+                     .start_offset = cs_.position(),
+                     .end_offset = cs_.position(),
                      .start_line = cs_.line(),
                      .start_column = cs_.column(),
                      .end_line = cs_.line(),
@@ -64,19 +64,19 @@ void Lexer::consumeTrivia() {
     char c = cs_.peek();
 
     if (c == '\n') {
-      const std::size_t start_offset = cs_.offset();
+      const std::size_t start_position = cs_.position();
       const std::size_t start_line = cs_.line();
       const std::size_t start_column = cs_.column();
 
       cs_.consumeOne();
 
-      const std::size_t end_offset = cs_.offset();
+      const std::size_t end_position = cs_.position();
       trivia_.push_back(TriviaPiece{
           TriviaKind::Newline,
-          cs_.view(start_offset, end_offset),
+          cs_.view(start_position, end_position),
           SourceLoc{
-              .start_offset = start_offset,
-              .end_offset = end_offset,
+              .start_offset = start_position,
+              .end_offset = end_position,
               .start_line = start_line,
               .start_column = start_column,
               .end_line = cs_.line(),
@@ -88,7 +88,7 @@ void Lexer::consumeTrivia() {
     }
 
     if (std::isspace(static_cast<unsigned char>(c))) {
-      const std::size_t start_offset = cs_.offset();
+      const std::size_t start_position = cs_.position();
       const std::size_t start_line = cs_.line();
       const std::size_t start_column = cs_.column();
 
@@ -99,13 +99,13 @@ void Lexer::consumeTrivia() {
         cs_.consumeOne();
       }
 
-      const std::size_t end_offset = cs_.offset();
+      const std::size_t end_position = cs_.position();
       trivia_.push_back(TriviaPiece{
           TriviaKind::Whitespace,
-          cs_.view(start_offset, end_offset),
+          cs_.view(start_position, end_position),
           SourceLoc{
-              .start_offset = start_offset,
-              .end_offset = end_offset,
+              .start_offset = start_position,
+              .end_offset = end_position,
               .start_line = start_line,
               .start_column = start_column,
               .end_line = cs_.line(),
@@ -139,15 +139,15 @@ bool Lexer::consumeCommentMaybe() {
     const std::size_t delimSize = delimOpen.size();
 
     // cursor position
-    const std::size_t start_offset = cs_.offset();
+    const std::size_t start_position = cs_.position();
     const std::size_t start_line = cs_.line();
     const std::size_t start_column = cs_.column();
 
-    if (start_offset + delimSize > cs_.size())
+    if (start_position + delimSize > cs_.size())
       continue;
 
     std::string_view candidate =
-        cs_.view(start_offset, start_offset + delimSize);
+        cs_.view(start_position, start_position + delimSize);
     if (candidate != delimOpen)
       continue;
 
@@ -165,7 +165,7 @@ bool Lexer::consumeCommentMaybe() {
           cs_.consumeOne();
       } else {
         while (!cs_.eof()) {
-          const std::size_t cur = cs_.offset();
+          const std::size_t cur = cs_.position();
           if (cur + close.size() <= cs_.size() &&
               cs_.view(cur, cur + close.size()) == close) {
             cs_.advance(close.size());
@@ -176,13 +176,13 @@ bool Lexer::consumeCommentMaybe() {
       }
     }
 
-    const std::size_t end_offset = cs_.offset();
+    const std::size_t end_position = cs_.position();
     trivia_.push_back(TriviaPiece{
         TriviaKind::Comment,
-        cs_.view(start_offset, end_offset),
+        cs_.view(start_position, end_position),
         SourceLoc{
-            .start_offset = start_offset,
-            .end_offset = end_offset,
+            .start_offset = start_position,
+            .end_offset = end_position,
             .start_line = start_line,
             .start_column = start_column,
             .end_line = cs_.line(),
