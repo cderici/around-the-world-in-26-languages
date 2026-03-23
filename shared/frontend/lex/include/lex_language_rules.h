@@ -38,7 +38,7 @@ public:
   virtual bool isIdentStart(char c) const = 0;
   virtual bool isIdentContinue(char c) const = 0;
 
-  virtual bool emitNewlineToken() const = 0; // flase now?
+  virtual bool emitNewlineToken() const = 0;
   virtual bool emitIndentDedent() const = 0;
   virtual bool allowRationalLiteral() const = 0;
 };

@@ -18,8 +18,10 @@ char CharStream::peek() const {
 }
 
 char CharStream::peek2() const {
-  // eof check
-  if (cursor_ + 1 >= buffer_.size()) // + 1 can overflow
+  if (cursor_ >= buffer_.size())
+    return '\0';
+
+  if (buffer_.size() - cursor_ < 2)
     return '\0';
 
   return buffer_[cursor_ + 1];

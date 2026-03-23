@@ -149,7 +149,7 @@ bool Lexer::consumeCommentMaybe() {
     const std::size_t start_line = cs_.line();
     const std::size_t start_column = cs_.column();
 
-    if (start_position + delimSize > cs_.size())
+    if (cs_.size() - start_position < delimSize)
       continue;
 
     std::string_view candidate =
@@ -172,7 +172,7 @@ bool Lexer::consumeCommentMaybe() {
       } else {
         while (!cs_.eof()) {
           const std::size_t cur = cs_.position();
-          if (cur + close.size() <= cs_.size() &&
+          if (cs_.size() - cur >= close.size() &&
               cs_.view(cur, cur + close.size()) == close) {
             cs_.advance(close.size());
             break;
@@ -311,7 +311,7 @@ Token Lexer::lexPunctOrInvalid() {
   const std::size_t startCol = cs_.column();
 
   // Check two-char punctuation first (e.g. <=) -- longest match lexing.
-  if (startPos + 2 <= cs_.size()) {
+  if (cs_.size() - startPos >= 2) {
     const std::string_view two = cs_.view(startPos, startPos + 2);
     if (auto k = langLexConfig_.punctuator(two)) {
       cs_.advance(2);
