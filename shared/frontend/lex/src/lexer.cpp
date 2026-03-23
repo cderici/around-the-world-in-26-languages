@@ -56,6 +56,9 @@ Token Lexer::next() {
 
 const std::vector<TriviaPiece> &Lexer::leadingTrivia() const { return trivia_; }
 
+// consumeTrivia lexes Trivia
+// Trivia are: positions, spaces, comments, everything we *could* ignore,
+// but we don't so I can maybe experiment with some tooling later on
 void Lexer::consumeTrivia() {
   bool consumed_any = true;
   // Keep going as long as we don't hit an eof and we consumed something in the
@@ -198,9 +201,11 @@ bool Lexer::consumeCommentMaybe() {
   return false;
 }
 
-// invariant must be kept for lexing functions, always consume at least one char
-// unless EOF
+// next's invariant must be kept for all lexing functions
+// --> always consume at least one char unless EOF
 
+// lexIdentifierOrKeyword lexes alphanumeric char streams, something that can be
+// a keyword or just an Identifier, depending on the ILexLanguageRules
 Token Lexer::lexIdentifierOrKeyword() {
 
   std::size_t startPos = cs_.position();
@@ -245,6 +250,9 @@ Token Lexer::lexIdentifierOrKeyword() {
                LiteralValue{}};
 }
 
+// lexNumber lexes a numeric stream
+// returns TokenKind::InvalidNumber if something's off
+// Otherwise returns TokenKind::Integer
 Token Lexer::lexNumber() {
   const std::size_t startPos = cs_.position();
   const std::size_t startLine = cs_.line();
@@ -263,12 +271,25 @@ Token Lexer::lexNumber() {
   long long parsed = 0;
   const auto parseRes =
       std::from_chars(lexeme.data(), lexeme.data() + lexeme.size(), parsed);
-  LiteralValue literal{};
   // no error code && we parsed the whole thing
-  if (parseRes.ec == std::errc{} &&
-      parseRes.ptr == lexeme.data() + lexeme.size()) {
-    literal = parsed;
+  // We don't throw exception for InvalidNumber here because it's not a runtime
+  // failure, it's a use problem and we should handle that in downstream
+  // (parser) depending on how language wants to communicate it to the user.
+  if (parseRes.ec != std::errc{} ||
+      parseRes.ptr != lexeme.data() + lexeme.size()) {
+    return Token{TokenKind::InvalidNumber, lexeme,
+                 SourceLoc{
+                     .start_offset = startPos,
+                     .end_offset = endPos,
+                     .start_line = startLine,
+                     .start_column = startCol,
+                     .end_line = endLine,
+                     .end_column = endCol,
+                 },
+                 LiteralValue{}};
   }
+
+  LiteralValue literal{parsed};
 
   return Token{TokenKind::Integer, lexeme,
                SourceLoc{
@@ -282,11 +303,14 @@ Token Lexer::lexNumber() {
                literal};
 }
 
+// lexPunctOrInvalid lexes punctuation
+// returns std::optional<TokenKing> (so it can be invalid)j
 Token Lexer::lexPunctOrInvalid() {
   const std::size_t startPos = cs_.position();
   const std::size_t startLine = cs_.line();
   const std::size_t startCol = cs_.column();
 
+  // Check two-char punctuation first (e.g. <=) -- longest match lexing.
   if (startPos + 2 <= cs_.size()) {
     const std::string_view two = cs_.view(startPos, startPos + 2);
     if (auto k = langLexConfig_.punctuator(two)) {
@@ -304,6 +328,7 @@ Token Lexer::lexPunctOrInvalid() {
     }
   }
 
+  // Now check 1-char punctuation (e.g. <)
   const std::string_view one = cs_.view(startPos, startPos + 1);
   if (auto k = langLexConfig_.punctuator(one)) {
     cs_.consumeOne();

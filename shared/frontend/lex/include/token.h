@@ -8,6 +8,7 @@ namespace frontend::lex {
 
 enum class TokenKind {
   Invalid,
+  InvalidNumber,
   Eof,
 
   Identifier,
