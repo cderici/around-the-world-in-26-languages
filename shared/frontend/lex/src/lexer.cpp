@@ -3,8 +3,8 @@
 #include "source_loc.h"
 #include "token.h"
 #include <cctype>
+#include <charconv>
 #include <cstddef>
-#include <iterator>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -245,15 +245,91 @@ Token Lexer::lexIdentifierOrKeyword() {
                LiteralValue{}};
 }
 
-/*
+Token Lexer::lexNumber() {
+  const std::size_t startPos = cs_.position();
+  const std::size_t startLine = cs_.line();
+  const std::size_t startCol = cs_.column();
 
-private:
-Token lexNumber();
-Token lexPunctOrInvalid();
+  while (!cs_.eof() && std::isdigit(static_cast<unsigned char>(cs_.peek()))) {
+    cs_.consumeOne();
+  }
 
-CharStream & cs_;
-const ILexLanguageRules &langLexConfig_;
-std::vector<TriviaPiece> trivia_;
-*/
+  const std::size_t endPos = cs_.position();
+  const std::size_t endLine = cs_.line();
+  const std::size_t endCol = cs_.column();
+
+  const std::string_view lexeme = cs_.view(startPos, endPos);
+
+  long long parsed = 0;
+  const auto parseRes =
+      std::from_chars(lexeme.data(), lexeme.data() + lexeme.size(), parsed);
+  LiteralValue literal{};
+  // no error code && we parsed the whole thing
+  if (parseRes.ec == std::errc{} &&
+      parseRes.ptr == lexeme.data() + lexeme.size()) {
+    literal = parsed;
+  }
+
+  return Token{TokenKind::Integer, lexeme,
+               SourceLoc{
+                   .start_offset = startPos,
+                   .end_offset = endPos,
+                   .start_line = startLine,
+                   .start_column = startCol,
+                   .end_line = endLine,
+                   .end_column = endCol,
+               },
+               literal};
+}
+
+Token Lexer::lexPunctOrInvalid() {
+  const std::size_t startPos = cs_.position();
+  const std::size_t startLine = cs_.line();
+  const std::size_t startCol = cs_.column();
+
+  if (startPos + 2 <= cs_.size()) {
+    const std::string_view two = cs_.view(startPos, startPos + 2);
+    if (auto k = langLexConfig_.punctuator(two)) {
+      cs_.advance(2);
+      return Token{*k, two,
+                   SourceLoc{
+                       .start_offset = startPos,
+                       .end_offset = cs_.position(),
+                       .start_line = startLine,
+                       .start_column = startCol,
+                       .end_line = cs_.line(),
+                       .end_column = cs_.column(),
+                   },
+                   LiteralValue{}};
+    }
+  }
+
+  const std::string_view one = cs_.view(startPos, startPos + 1);
+  if (auto k = langLexConfig_.punctuator(one)) {
+    cs_.consumeOne();
+    return Token{*k, one,
+                 SourceLoc{
+                     .start_offset = startPos,
+                     .end_offset = cs_.position(),
+                     .start_line = startLine,
+                     .start_column = startCol,
+                     .end_line = cs_.line(),
+                     .end_column = cs_.column(),
+                 },
+                 LiteralValue{}};
+  }
+
+  cs_.consumeOne();
+  return Token{TokenKind::Invalid, one,
+               SourceLoc{
+                   .start_offset = startPos,
+                   .end_offset = cs_.position(),
+                   .start_line = startLine,
+                   .start_column = startCol,
+                   .end_line = cs_.line(),
+                   .end_column = cs_.column(),
+               },
+               LiteralValue{}};
+}
 
 } // namespace frontend::lex
