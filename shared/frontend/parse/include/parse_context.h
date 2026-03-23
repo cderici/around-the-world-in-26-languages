@@ -6,7 +6,7 @@
 namespace frontend::parse {
 
 template <typename BuilderT> struct ParseContext {
-  TokenStream &tokens;
+  TokenStream &tokenStream;
   BuilderT &builder;
   IDiagnostics &diag;
 };
